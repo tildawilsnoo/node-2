@@ -4,10 +4,6 @@ html, body {
   font-family: sans-serif;
 }
 
-.title {
-
-}
-
 #label {
   display: flex;
   gap: 1em;
@@ -15,6 +11,11 @@ html, body {
   padding: 5px;
   margin-left: 0px;
   background-color: #f5f9ff;
+}
+
+#date-time {
+  display: flex;
+  gap: 1em;
 }
 
 #edit-label {
@@ -28,5 +29,5 @@ html, body {
 }
 
 #comment{
-  max-width: 800px;
+  background-color: beige;
 }

@@ -31,6 +31,7 @@ function keyPressed() {
 function showEdit() {
   let sections = data.edits[edit].sections;
   console.log(edit, sections.map(s => ({ heading: s.heading, change_type: s.change_type, has_text: s.edit_after !== null })));
+  console.log(data.edits[edit])
   currentTime = data.edits[edit].time;
   currentDate = data.edits[edit].date;
   comment = cleanWikitext(data.edits[edit].edit_comment);
@@ -47,8 +48,10 @@ function showEdit() {
 
   select('#text').html(html);
   select('#section').html('');
-  select('#time').html(currentTime);
-  select('#date').html(currentDate);
+ console.log(currentDate, currentTime);
+  let formatted = formatDateTime(currentDate, currentTime);
+  select('#time').html(formatted.time);
+  select('#date').html(formatted.date);
   select('#editor').html(editor);
   select('#comment').html(comment);
   styleText();
@@ -62,6 +65,24 @@ function prev() {
 function next() {
   edit++;
   showEdit();
+}
+
+function formatDateTime(date, time) {
+  let dt = new Date(`${date}T${time}Z`);
+  let formatted_date = dt.toLocaleDateString('en-US', {
+    timeZone: 'America/New_York',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  let formatted_time = dt.toLocaleTimeString('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  });
+  return { date: formatted_date, time: formatted_time };
 }
 
 function cleanWikitext(str) {
