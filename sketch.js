@@ -1,17 +1,18 @@
 let data;
 let edit = 0;
-let currentHeading = '';
 let currentText = '';
 let currentTime = '';
 let currentDate = '';
+let comment = '';
+let editor = '';
 
 function preload(){
   data = loadJSON('suspects_section_edits_all.json');
 }
 
 function setup() {
-  // createCanvas(400, 400);
-
+  noCanvas();
+  showEdit();
 }
 
 function draw() {
@@ -28,14 +29,28 @@ function keyPressed() {
 }
 
 function showEdit() {
-  currentHeading = data.edits[edit].sections[0].heading;
-  currentText = data.edits[edit].sections[0].edit_after;
+  let sections = data.edits[edit].sections;
+  console.log(edit, sections.map(s => ({ heading: s.heading, change_type: s.change_type, has_text: s.edit_after !== null })));
   currentTime = data.edits[edit].time;
   currentDate = data.edits[edit].date;
-  select('#text').html(currentText);
+  comment = cleanWikitext(data.edits[edit].edit_comment);
+  editor = data.edits[edit].user;
+
+  let html = sections.map(s => {
+    let heading = s.heading.replace(/^## /, '');
+    let body = (s.edit_after || '').replace(/^##[^\n]*\n?/, '');
+    return `<div class="section-block">
+      <div class="section-heading">${heading}</div>
+      <div class="section-body">${body}</div>
+    </div>`;
+  }).join('');
+
+  select('#text').html(html);
+  select('#section').html('');
   select('#time').html(currentTime);
   select('#date').html(currentDate);
-  select('#section').html(currentHeading);
+  select('#editor').html(editor);
+  select('#comment').html(comment);
   styleText();
 }
 
@@ -49,9 +64,18 @@ function next() {
   showEdit();
 }
 
-function styleText() {
-  let el = select('#text');
-  let content = el.html();
-  content = content.replace(/(##[^\n]+)/g, '<span class="title">$1</span> ');
-  el.html(content);
+function cleanWikitext(str) {
+  return str
+    .replace(/\/\*[^*]*\*\/\s*/g, '')
+    .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1')
+    .trim();
 }
+
+function styleText() {
+  selectAll('.section-body').forEach(el => {
+    let content = el.html();
+    content = content.replace(/\n/g, '<br>');
+    el.html(content);
+  });
+}
+

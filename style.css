@@ -1,12 +1,32 @@
 html, body {
-  margin: 0;
+  margin: 20px;
   padding: 0;
-}
-
-canvas {
-  display: block;
+  font-family: sans-serif;
 }
 
 .title {
-  
+
+}
+
+#label {
+  display: flex;
+  gap: 1em;
+  margin: 5px;
+  padding: 5px;
+  margin-left: 0px;
+  background-color: #f5f9ff;
+}
+
+#edit-label {
+  display: flex;
+  gap: 1em;
+}
+
+#comment-label{
+  display: flex;
+  gap: 1em;
+}
+
+#comment{
+  max-width: 800px;
 }
