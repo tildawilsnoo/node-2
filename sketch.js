@@ -6,7 +6,7 @@ let currentDate = '';
 let comment = '';
 let editor = '';
 
-function preload(){
+function preload() {
   data = loadJSON('suspects_section_edits_all.json');
 }
 
@@ -31,7 +31,8 @@ function keyPressed() {
 function showEdit() {
   let sections = data.edits[edit].sections;
   console.log(edit, sections.map(s => ({ heading: s.heading, change_type: s.change_type, has_text: s.edit_after !== null })));
-  console.log(data.edits[edit])
+  let revid = data.edits[edit].revid;
+  console.log(`https://en.wikipedia.org/w/index.php?diff=${revid}`);
   currentTime = data.edits[edit].time;
   currentDate = data.edits[edit].date;
   comment = cleanWikitext(data.edits[edit].edit_comment);
@@ -48,7 +49,7 @@ function showEdit() {
 
   select('#text').html(html);
   select('#section').html('');
- console.log(currentDate, currentTime);
+  console.log(currentDate, currentTime);
   let formatted = formatDateTime(currentDate, currentTime);
   select('#time').html(formatted.time);
   select('#date').html(formatted.date);

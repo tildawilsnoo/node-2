@@ -1,6 +1,6 @@
 import json, re, difflib
 
-SOURCE = '../boston_marathon_edits.json'
+SOURCE = '../boston_marathon_edits_with_revids.json'
 OUTPUT = '../suspects_section_edits_all.json'
 
 SUSPECT_HEADINGS = {
@@ -123,6 +123,7 @@ for item in source:
             'time': item['time'],
             'user': item['user'],
             'edit_comment': item.get('edit_comment', ''),
+            'revid': item.get('revid'),
             'sections': changed_sections,
         })
 
