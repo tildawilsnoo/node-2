@@ -1,10 +1,12 @@
 let data;
 let edit = 0;
+let currentHeading = '';
 let currentText = '';
+let currentTime = '';
 let currentDate = '';
 
 function preload(){
-  data = loadJSON('suspects_section_edits.json');
+  data = loadJSON('suspects_section_edits_all.json');
 }
 
 function setup() {
@@ -25,22 +27,26 @@ function keyPressed() {
   }
 }
 
+function showEdit() {
+  currentHeading = data.edits[edit].sections[0].heading;
+  currentText = data.edits[edit].sections[0].edit_after;
+  currentTime = data.edits[edit].time;
+  currentDate = data.edits[edit].date;
+  select('#text').html(currentText);
+  select('#time').html(currentTime);
+  select('#date').html(currentDate);
+  select('#section').html(currentHeading);
+  styleText();
+}
+
 function prev() {
   edit--;
-  currentText = data.edits[edit].edit_after;
-  currentDate = data.edits[edit].time;
-  select('#text').html(currentText);
-  select('#time').html(currentDate);
-  styleText();
+  showEdit();
 }
 
 function next() {
   edit++;
-  currentText = data.edits[edit].edit_after;
-  currentDate = data.edits[edit].time;
-  select('#text').html(currentText);
-  select('#time').html(currentDate);
-  styleText();
+  showEdit();
 }
 
 function styleText() {
