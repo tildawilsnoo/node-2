@@ -40,10 +40,10 @@ function showEdit() {
 
   let html = sections.map(s => {
     let heading = s.heading.replace(/^## /, '');
-    let body = (s.edit_after || '').replace(/^##[^\n]*\n?/, '');
+    let body = (s.edit_after || '').replace(/^##[^\n]*\n?/, '').trimStart();
     return `<div class="section-block">
       <div class="section-heading">${heading}</div>
-      <div class="section-body">${body}</div>
+      <div class="section-body"><p>${body}</p></div>
     </div>`;
   }).join('');
 
@@ -96,7 +96,7 @@ function cleanWikitext(str) {
 function styleText() {
   selectAll('.section-body').forEach(el => {
     let content = el.html();
-    content = content.replace(/\n/g, '<br>');
+    content = content.replace(/(\n\s*){2,}/g, '</p><p>').replace(/\n/g, '<br>');
     el.html(content);
   });
 }
