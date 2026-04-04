@@ -18,7 +18,7 @@ body {
 
 #date-time {
   display: block;
-  width: 40%;
+  width: 30%;
   gap: 1em;
 }
 
@@ -36,9 +36,6 @@ body {
   gap: 1em;
 }
 
-#comment {
-  background-color: beige;
-}
 
 .section-heading {
   font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
@@ -60,4 +57,9 @@ body {
 
 p{
   margin-top: 0px;
+}
+
+.section-removed {
+  font-style: italic;
+  padding-top: 30px;
 }

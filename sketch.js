@@ -30,17 +30,19 @@ function keyPressed() {
 
 function showEdit() {
   let sections = data.edits[edit].sections;
-  console.log(edit, sections.map(s => ({ heading: s.heading, change_type: s.change_type, has_text: s.edit_after !== null })));
   let revid = data.edits[edit].revid;
-  console.log(`https://en.wikipedia.org/w/index.php?diff=${revid}`);
+  select('#wiki-link').attribute('href',`https://en.wikipedia.org/w/index.php?diff=${revid}`);
   currentTime = data.edits[edit].time;
   currentDate = data.edits[edit].date;
   comment = cleanWikitext(data.edits[edit].edit_comment);
   editor = data.edits[edit].user;
 
   let html = sections.map(s => {
+    if (s.edit_after === null) {
+      return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
+    }
     let heading = s.heading.replace(/^## /, '');
-    let body = (s.edit_after || '').replace(/^##[^\n]*\n?/, '').trimStart();
+    let body = s.edit_after.replace(/^##[^\n]*\n?/, '').trimStart();
     return `<div class="section-block">
       <div class="section-heading">${heading}</div>
       <div class="section-body"><p>${body}</p></div>
