@@ -1,43 +1,34 @@
 let data;
 let edit = 0;
-let currentText = '';
-let currentTime = '';
-let currentDate = '';
-let comment = '';
-let editor = '';
 
 function preload() {
   data = loadJSON('suspects_section_edits_all.json');
 }
 
 function setup() {
+  let y = data.edits[0].date.split('-')[0];
+  data.edits = data.edits.filter(e => e.date >= `${y}-04-15` && e.date <= `${y}-05-19`);
   noCanvas();
   showEdit();
 }
 
-function draw() {
-  // background(220);
-}
-
 function keyPressed() {
-  if (keyCode === RIGHT_ARROW) {
-    next();
-  }
-  if (keyCode === LEFT_ARROW) {
-    prev();
-  }
+  if (keyCode === RIGHT_ARROW && edit < data.edits.length - 1) next();
+  if (keyCode === LEFT_ARROW && edit > 0) prev();
 }
 
 function showEdit() {
-  let sections = data.edits[edit].sections;
-  let revid = data.edits[edit].revid;
-  select('#wiki-link').attribute('href',`https://en.wikipedia.org/w/index.php?diff=${revid}`);
-  currentTime = data.edits[edit].time;
-  currentDate = data.edits[edit].date;
-  comment = cleanWikitext(data.edits[edit].edit_comment);
-  editor = data.edits[edit].user;
+  let e = data.edits[edit];
 
-  let html = sections.map(s => {
+  select('#wiki-link').attribute('href', `https://en.wikipedia.org/w/index.php?diff=${e.revid}`);
+  select('#editor').html(e.user);
+  select('#comment').html(cleanWikitext(e.edit_comment));
+
+  let formatted = formatDateTime(e.date, e.time);
+  select('#date').html(formatted.date);
+  select('#time').html(formatted.time);
+
+  let html = e.sections.map(s => {
     if (s.edit_after === null) {
       return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
     }
@@ -51,13 +42,8 @@ function showEdit() {
 
   select('#text').html(html);
   select('#section').html('');
-  console.log(currentDate, currentTime);
-  let formatted = formatDateTime(currentDate, currentTime);
-  select('#time').html(formatted.time);
-  select('#date').html(formatted.date);
-  select('#editor').html(editor);
-  select('#comment').html(comment);
   styleText();
+  renderTimeline();
 }
 
 function prev() {
@@ -103,3 +89,50 @@ function styleText() {
   });
 }
 
+function renderTimeline() {
+  let timestamps = data.edits.map(e => new Date(`${e.date}T${e.time}Z`));
+  let firstTime = timestamps[0];
+  let lastTime  = timestamps[timestamps.length - 1];
+  let totalRange = lastTime - firstTime;
+
+  function toPct(t) {
+    return totalRange === 0 ? 50 : (t - firstTime) / totalRange * 100;
+  }
+
+  let container = select('#timeline');
+  container.html('');
+
+  let track = createDiv('');
+  track.class('timeline-track');
+  track.parent(container);
+
+  // day markers — tick + label at midnight of each day
+  let seenDays = new Set();
+  for (let e of data.edits) {
+    if (seenDays.has(e.date)) continue;
+    seenDays.add(e.date);
+    let midnight = new Date(`${e.date}T00:00:00Z`);
+    let pct = Math.max(0, Math.min(100, toPct(midnight)));
+
+    let tick = createDiv('');
+    tick.class('timeline-tick');
+    tick.style('left', pct + '%');
+    tick.parent(container);
+
+    let label = createDiv(midnight.getUTCDate());
+    label.class('timeline-day-label');
+    label.style('left', pct + '%');
+    label.parent(container);
+  }
+
+  // one dot per edit
+  for (let i = 0; i < data.edits.length; i++) {
+    let dot = createDiv('');
+    dot.class(i === edit ? 'timeline-dot current' : 'timeline-dot');
+    dot.style('left', toPct(timestamps[i]) + '%');
+    dot.parent(container);
+
+    let idx = i;
+    dot.mousePressed(() => { edit = idx; showEdit(); });
+  }
+}
