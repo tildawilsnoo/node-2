@@ -64,38 +64,6 @@ p{
   padding-top: 30px;
 }
 
-.cite-ref {
-  font-size: 0.75em;
-  vertical-align: super;
-  line-height: 0;
-}
-
-.cite-ref a {
-  color: #0645ad;
-  text-decoration: none;
-}
-
-.cite-ref a:hover {
-  text-decoration: underline;
-}
-
-.cite-list {
-  font-size: 0.85em;
-  color: #54595d;
-  margin-top: 0;
-  padding-top: 0.5em;
-  padding-left: 2em;
-  line-height: 1.5;
-}
-
-.cite-list li {
-  margin-bottom: 0.3em;
-}
-
-.cite-list a {
-  color: #0645ad;
-}
-
 #timeline {
   position: relative;
   height: 38px;
