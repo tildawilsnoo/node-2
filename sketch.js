@@ -1,12 +1,16 @@
 let data;
+let citationsRaw;
+let citationMap = {};
 let edit = 0;
 
 function preload() {
-  data = loadJSON('get data/boston_marathon_bombing_suspect_edits.json');
+  data = loadJSON('get citations/edits_with_citations.json');
+  citationsRaw = loadJSON('get citations/citations.json');
 }
 
 function setup() {
   noCanvas();
+  for (let c of citationsRaw.citations) citationMap[c.citation_id] = c;
   showEdit();
 }
 
@@ -17,6 +21,7 @@ function keyPressed() {
 
 function showEdit() {
   let e = data.revisions[edit];
+  console.log(e.revid);
 
   select('#wiki-link').attribute('href', `https://en.wikipedia.org/w/index.php?diff=${e.revid}`);
   select('#editor').html(e.user);
@@ -28,7 +33,7 @@ function showEdit() {
 
   let html = e.changed_sections.map(name => {
     let section = e.section_text_after[name];
-    let text = section ? cleanPlaintext(section.plaintext) : '';
+    let text = section ? wikitextToPlaintext(section.wikitext) : '';
     if (!text) return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
     return `<div class="section-block">
       <div class="section-heading">${name}</div>
@@ -37,9 +42,55 @@ function showEdit() {
   }).join('');
 
   select('#text').html(html);
-  select('#section').html('');
   styleText();
+  renderReferences(e.citation_ids || []);
   renderTimeline();
+}
+
+function renderReferences(citationIds) {
+  let container = select('#references');
+  if (!citationIds.length) {
+    container.html('');
+    return;
+  }
+
+  let items = citationIds.map((id, i) => {
+    let c = citationMap[id];
+    if (!c) return `<li value="${i + 1}">${id}</li>`;
+
+    let parts = [];
+
+    if (c.author) parts.push(c.author.replace(/\.+$/, '') + '.');
+
+    let title = null;
+    if (c.title) {
+      let inner = c.title.match(/^[""\u201c]([^""\u201d]+)[""\u201d]/);
+      title = inner ? inner[1].trim() : c.title.replace(/\.+$/, '').trim();
+    }
+    if (title && c.url) {
+      parts.push(`"<a href="${c.url}" target="_blank" rel="noopener">${title}</a>".`);
+    } else if (title) {
+      parts.push(`"${title}".`);
+    } else if (c.url) {
+      parts.push(`<a href="${c.url}" target="_blank" rel="noopener">${c.url}</a>.`);
+    } else if (c.raw_ref) {
+      parts.push(c.raw_ref);
+    }
+
+    let venue = c.newspaper || c.work || c.publisher;
+    if (venue) parts.push(`<i>${venue}</i>.`);
+
+    if (c.date) parts.push(c.date + '.');
+
+    if (c.access_date) parts.push(`Retrieved ${c.access_date}.`);
+
+    return `<li value="${i + 1}">${parts.join(' ')}</li>`;
+  }).join('');
+
+  container.html(`
+    <div class="section-heading">References</div>
+    <ol class="references-list">${items}</ol>
+  `);
 }
 
 function prev() {
@@ -77,10 +128,18 @@ function cleanWikitext(str) {
     .trim();
 }
 
-function cleanPlaintext(text) {
-  return text
+function wikitextToPlaintext(wikitext) {
+  return wikitext
+    .replace(/<ref\b[^>]*>[\s\S]*?<\/ref>/gi, '')   // remove <ref>...</ref>
+    .replace(/<ref\b[^>]*\/>/gi, '')                  // remove self-closing <ref/>
+    .replace(/<!--[\s\S]*?-->/g, '')                  // remove HTML comments
+    .replace(/\{\{[^{}]*\}\}/g, '')                   // remove {{templates}}
+    .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1') // [[Target|Label]] -> Label
+    .replace(/'{2,3}([^']+)'{2,3}/g, '$1')            // ''italic''/'''bold''' -> text
+    .replace(/<[^>]+>/g, '')                          // strip remaining HTML tags
     .replace(/thumb(?:nail)?\|(?:(?:right|left|center|\d+px)\|)?[^\n]*/gi, '')
     .replace(/https?:\/\/\S+/g, '')
+    .replace(/\S+\s*\(talk\)\s*\d{2}:\d{2},\s*\d+\s+\w+\s+\d{4}\s*\(UTC\)/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
