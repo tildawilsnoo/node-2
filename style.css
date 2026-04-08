@@ -148,10 +148,36 @@ p{
 }
 
 .references-list a {
-  color: #0645ad;
+  color: #3366cc;
   text-decoration: none;
 }
 
 .references-list a:hover {
   text-decoration: underline;
+  color: #3056a9;
+}
+
+.references-list a:visited {
+  color: #6a60b0;
+}
+
+sup.reference {
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  font-weight: normal;
+  font-style: normal;
+}
+
+sup.reference a {
+  color: #3366cc;
+  text-decoration: none;
+}
+
+sup.reference a:hover {
+  text-decoration: underline;
+  color: #3056a9;
+}
+
+sup.reference a:visited {
+  color: #6a60b0;
 }
