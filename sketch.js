@@ -1,7 +1,6 @@
 let data;
 let citationsRaw;
 let citationMap = {};
-let urlToCitationId = {};
 let edit = 0;
 
 function preload() {
@@ -11,13 +10,7 @@ function preload() {
 
 function setup() {
   noCanvas();
-  for (let c of citationsRaw.citations) {
-    citationMap[c.citation_id] = c;
-    if (c.url) {
-      let normUrl = c.url.trim().replace(/\/$/, '');
-      urlToCitationId[normUrl] = c.citation_id;
-    }
-  }
+  for (let c of citationsRaw.citations) citationMap[c.citation_id] = c;
   showEdit();
 }
 
@@ -40,7 +33,7 @@ function showEdit() {
 
   let html = e.changed_sections.map(name => {
     let section = e.section_text_after[name];
-    let text = section ? wikitextToPlaintext(section.wikitext, e.citation_ids || []) : '';
+    let text = section ? wikitextToPlaintext(section.wikitext) : '';
     if (!text) return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
     return `<div class="section-block">
       <div class="section-heading">${name}</div>
@@ -91,7 +84,7 @@ function renderReferences(citationIds) {
 
     if (c.access_date) parts.push(`Retrieved ${c.access_date}.`);
 
-    return `<li id="ref-${i + 1}" value="${i + 1}">${parts.join(' ')}</li>`;
+    return `<li value="${i + 1}">${parts.join(' ')}</li>`;
   }).join('');
 
   container.html(`
@@ -135,34 +128,9 @@ function cleanWikitext(str) {
     .trim();
 }
 
-function findCitationId(refContent) {
-  let urlMatch = refContent.match(/https?:\/\/\S+/);
-  if (urlMatch) {
-    let url = urlMatch[0].trim().replace(/[.,;'")\]]+$/, '').replace(/\/$/, '');
-    return urlToCitationId[url] || null;
-  }
-  return null;
-}
-
-function wikitextToPlaintext(wikitext, citationIds) {
-  citationIds = citationIds || [];
-
-  // Extract <ref> content into placeholders before any cleanup strips the tags
-  let placeholders = [];
-  let text = wikitext.replace(/<ref\b[^>]*>([\s\S]*?)<\/ref>/gi, (_match, content) => {
-    content = content.replace(/<!--[\s\S]*?-->/g, '').trim();
-    let citId = findCitationId(content);
-    if (!citId) return '';
-    let idx = citationIds.indexOf(citId);
-    if (idx === -1) return '';
-    let num = idx + 1;
-    let sup = `<sup class="reference"><a href="#ref-${num}"><span class="cite-bracket">&#91;</span>${num}<span class="cite-bracket">&#93;</span></a></sup>`;
-    placeholders.push(sup);
-    return `\x00CITREF${placeholders.length - 1}\x00`;
-  });
-
-  // Now do all cleanup (safe — placeholders contain no < > chars)
-  text = text
+function wikitextToPlaintext(wikitext) {
+  return wikitext
+    .replace(/<ref\b[^>]*>[\s\S]*?<\/ref>/gi, '')   // remove <ref>...</ref>
     .replace(/<ref\b[^>]*\/>/gi, '')                  // remove self-closing <ref/>
     .replace(/<!--[\s\S]*?-->/g, '')                  // remove HTML comments
     .replace(/\{\{[^{}]*\}\}/g, '')                   // remove {{templates}}
@@ -174,10 +142,6 @@ function wikitextToPlaintext(wikitext, citationIds) {
     .replace(/\S+\s*\(talk\)\s*\d{2}:\d{2},\s*\d+\s+\w+\s+\d{4}\s*\(UTC\)/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-
-  // Restore superscript HTML
-  text = text.replace(/\x00CITREF(\d+)\x00/g, (_, i) => placeholders[+i]);
-  return text;
 }
 
 function styleText() {

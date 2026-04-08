@@ -95,7 +95,7 @@
     {
       "source_type": "bracketed_url",
       "url": "http://www.nypost.com/p/news/national/fbi_grills_saudi_man_XaT5rE40LDdAH44vMFOEXM",
-      "title": "FBI grills Saudi man in Boston bombings",
+      "title": "\"FBI grills Saudi man in Boston bombings\", New York Daily Post, April 16, 2013.",
       "publisher": null,
       "work": null,
       "newspaper": null,
@@ -509,7 +509,7 @@
     {
       "source_type": "cite_web",
       "url": "http://www.theatlanticwire.com/national/2013/04/theres-shooter-loose-and-officer-down-mit/64379/",
-      "title": "An Officer's Been Killed and There's a Shooter on the Loose in Boston",
+      "title": "An Officer's Been Killed and There's a Shooter on the Loose in Boston - Adam Clark Estes",
       "publisher": "The Atlantic Wire",
       "work": null,
       "newspaper": null,
@@ -653,7 +653,7 @@
     {
       "source_type": "cite_news",
       "url": "http://www.wggb.com/2013/04/19/boston-police-issue-fresh-photo-of-suspect-2/",
-      "title": "Boston Bombing Suspect ID'ed as Cambridge Man",
+      "title": "Boston Bombing Suspect ID’ed as Cambridge Man",
       "publisher": "WGGB-TV",
       "work": null,
       "newspaper": null,
@@ -725,7 +725,7 @@
     {
       "source_type": "cite_news",
       "url": "http://www.guardian.co.uk/world/2013/apr/19/boston-mit-police-dead-watertown",
-      "title": "Boston manhunt for bomb suspect Dzhokhar Tsarnaev - live updates",
+      "title": "Boston manhunt for bomb suspect Dzhokhar Tsarnaev– live updates",
       "publisher": null,
       "work": null,
       "newspaper": "guardian.co.uk",
@@ -851,7 +851,7 @@
     {
       "source_type": "bracketed_url",
       "url": "http://www.wggb.com/2013/04/19/boston-suspects-father-dzhokhar-is-a-true-angel/",
-      "title": "Boston Bomb Suspect's Dad Tells Him to Surrender, Warns 'Hell Will Break Loose' if Son Dies",
+      "title": "Boston Bomb Suspect’s Dad Tells Him to Surrender, Warns ‘Hell Will Break Loose’ if Son Dies",
       "publisher": "ABC News",
       "work": null,
       "newspaper": null,
@@ -1139,7 +1139,7 @@
     {
       "source_type": "cite_web",
       "url": "http://inagist.com/all/325341152335257600/",
-      "title": "Seven IEDs have been recovered",
+      "title": "(7) IEDs have been recovered",
       "publisher": "Inigist",
       "work": null,
       "newspaper": null,
@@ -1211,7 +1211,7 @@
     {
       "source_type": "cite_web",
       "url": "http://web.mit.edu/newsoffice/2013/victim-identified-as-sean-collier-0419.html",
-      "title": "'He loved us, and we loved him'",
+      "title": "‘He loved us, and we loved him’",
       "publisher": "MIT News Office",
       "work": null,
       "newspaper": null,
@@ -1409,8 +1409,8 @@
     {
       "source_type": "bracketed_url",
       "url": "http://www.foxnews.com/opinion/2013/04/19/boston-terror-suspects-islamic-terrorists-not-chechen-separatists/",
-      "title": "Boston Marathon suspects Islamic terrorists, not Chechen separatists",
-      "publisher": "Fox News",
+      "title": "Boston Marathon suspects Islamic terrorists, not Chechen separatists | Fox News",
+      "publisher": null,
       "work": null,
       "newspaper": null,
       "author": null,
@@ -1733,8 +1733,8 @@
     {
       "source_type": "bracketed_url",
       "url": "http://www.boston.com/yourtown/news/watertown/2013/04/officials_in_watertown_field_c.html",
-      "title": "Officials in Watertown field calls from worried residents",
-      "publisher": "Boston.com",
+      "title": "Officials in Watertown field calls from worried residents - Watertown - Your Town - Boston.com",
+      "publisher": null,
       "work": null,
       "newspaper": null,
       "author": null,
@@ -1895,7 +1895,7 @@
     {
       "source_type": "cite_web",
       "url": "http://nymag.com/daily/intelligencer/2013/04/wrongly-accused-boston-bombing-suspects-sunil-tripathi.html",
-      "title": "All the Mistakenly Identified 'Suspects' in the Boston Bombing Investigation",
+      "title": "All the Mistakenly Identified ‘Suspects’ in the Boston Bombing Investigation",
       "publisher": "New York Magazine",
       "work": null,
       "newspaper": null,
@@ -1967,7 +1967,7 @@
     {
       "source_type": "cite_news",
       "url": "http://www.politico.com/story/2013/04/lindsey-graham-enemy-combatant-90365.html",
-      "title": "Lindsey Graham: 'Enemy combatant'",
+      "title": "Lindsey Graham: ‘Enemy combatant’",
       "publisher": null,
       "work": "Politico",
       "newspaper": null,
@@ -1985,8 +1985,8 @@
     {
       "source_type": "bracketed_url",
       "url": "http://hudsoncountytv.com/news/sister-of-boston-bombers-draw-fbi-to-buchanan-street-in-west-new-york/",
-      "title": "Sister of Boston Bombers Draw FBI to Buchanan Place in West New York",
-      "publisher": "Hudson County TV",
+      "title": "\"Sister of Boston Bombers Draw FBI to Buchanan Place in West New York\"",
+      "publisher": "Heinis, John (). . Hudson County TV",
       "work": null,
       "newspaper": null,
       "author": null,
@@ -2220,7 +2220,7 @@
       "source_type": "bracketed_url",
       "url": "http://www.youtube.com/watch?feature=player_embedded&v=ARE9rclZCqw",
       "title": "Tsarnaev brothers' mother: My sons are innocent, this is a setup",
-      "publisher": "Russia Today",
+      "publisher": "[[Russia Today]]",
       "work": null,
       "newspaper": null,
       "author": null,
@@ -2399,7 +2399,7 @@
     {
       "source_type": "cite_news",
       "url": "http://nation.time.com/2013/04/20/everything-you-need-to-know-about-the-boston-bombing-suspects/",
-      "title": "Brother's Keeper: Did Older Sibling Lure Bombing Suspect Into Plot?",
+      "title": "Brother’s Keeper: Did Older Sibling Lure Bombing Suspect Into Plot?",
       "publisher": null,
       "work": null,
       "newspaper": "Time",
@@ -2435,7 +2435,7 @@
     {
       "source_type": "cite_web",
       "url": "http://www.dailymail.co.uk/news/article-2311809/Tamerlan-Tsarnaev-Boston-bomber-married-Katherine-Russell-converted-Islam-marry-him.html?ITO=1490&ns_mchannel=rss&ns_campaign=1490",
-      "title": "Our hearts are sickened by the horror he inflicted': Shocked family of All-American girl who converted to Islam to marry Boston bomber say tragedy proves 'we never really knew him'",
+      "title": "Our hearts are sickened by the horror he inflicted': Shocked family of All-American girl who converted to Islam to marry Boston bomber say tragedy proves 'we never really knew him",
       "publisher": null,
       "work": null,
       "newspaper": "Daily Mail",
@@ -2657,7 +2657,7 @@
       "newspaper": null,
       "author": "Thomas, Linda",
       "date": "21 April 2013",
-      "access_date": "2013-04-21",
+      "access_date": "{{date|21 April 2013|mdy",
       "location": null,
       "agency": null,
       "format": null,
@@ -2921,7 +2921,7 @@
     {
       "source_type": "bracketed_url",
       "url": "http://deadspin.com/the-first-photos-of-the-boston-bombing-suspects-shooto-477881348",
-      "title": "The First Photos Of The Boston Bombing Suspects' Shootout With Police",
+      "title": "\"The First Photos Of The Boston Bombing Suspects' Shootout With Police\"",
       "publisher": null,
       "work": null,
       "newspaper": null,
@@ -2939,7 +2939,7 @@
     {
       "source_type": "bracketed_url",
       "url": "http://www.getonhand.com/blogs/news/7743337-boston-bombing-suspect-shootout-pictures",
-      "title": "Boston Bombing Suspect Shootout Pictures",
+      "title": "\"Boston Bombing Suspect Shootout Pictures\"",
       "publisher": null,
       "work": null,
       "newspaper": null,
@@ -3029,7 +3029,7 @@
     {
       "source_type": "cite_web",
       "url": "http://rt.com/op-edge/us-terrorists-threat-response-175/",
-      "title": "US overreaction to terror threat makes it easier for terrorists - former FBI agent",
+      "title": "US overreaction to terror threat makes it easier for terrorists – former FBI agent",
       "publisher": "RT (TV network)",
       "work": null,
       "newspaper": null,
@@ -3263,7 +3263,7 @@
     {
       "source_type": "cite_news",
       "url": "http://www.nytimes.com/2013/04/25/us/officers-killing-spurred-pursuit-in-boston-attack.html?hp&_r=0",
-      "title": "Officer's Killing Spurred Pursuit in Boston Attack",
+      "title": "Officer’s Killing Spurred Pursuit in Boston Attack",
       "publisher": "The New York Times",
       "work": null,
       "newspaper": null,
@@ -3317,7 +3317,7 @@
     {
       "source_type": "cite_news",
       "url": null,
-      "title": "Boston Marathon bombers: suspect Dzhozkar Tsarnaev's uncle Ruslan Tsarni pleads 'turn yourself in'",
+      "title": "Boston Marathon bombers: suspect Dzhozkar Tsarnaev's uncle Ruslan Tsarni pleads 'turn yourself in{{'-",
       "publisher": null,
       "work": null,
       "newspaper": null,
@@ -3335,7 +3335,7 @@
     {
       "source_type": "cite_news",
       "url": null,
-      "title": "Boston Police: 'We Are Questioning Many People'",
+      "title": "Boston Police: 'We Are Questioning Many People{{'-",
       "publisher": null,
       "work": null,
       "newspaper": null,
@@ -3407,7 +3407,7 @@
     {
       "source_type": "cite_web",
       "url": "http://www.huffingtonpost.com/2013/04/24/officials-boston-bombing-suspects-one-gun_n_3148609.html",
-      "title": "Boston Bombing Suspects, Tzarnaev Brothers, Had One Gun During Shootout With Police: Officials",
+      "title": "\"Boston Bombing Suspects, Tzarnaev Brothers, Had One Gun During Shootout With Police: Officials\"",
       "publisher": "Huffington Post",
       "work": null,
       "newspaper": null,
