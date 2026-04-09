@@ -50,8 +50,8 @@ const SECTION_ORDER = [
 ];
 
 function preload() {
-  data = loadJSON('get citations/edits_with_citations.json');
-  citationsRaw = loadJSON('get citations/citations.json');
+  data = loadJSON('edits_with_citations.json');
+  citationsRaw = loadJSON('citations.json');
 }
 
 function setup() {
