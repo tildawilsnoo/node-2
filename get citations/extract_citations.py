@@ -261,6 +261,18 @@ def extract_refs(wikitext: str) -> list[tuple[str | None, str]]:
     return results
 
 
+def extract_ref_names(wikitext: str) -> list[str]:
+    """
+    Return ref names from self-closing <ref name="…"/> tags.
+    These back-reference named citations defined elsewhere in the article.
+    """
+    pattern = re.compile(
+        r'<ref\s+name\s*=\s*["\']?([^"\'>/\s]+)["\']?\s*/>',
+        re.IGNORECASE,
+    )
+    return [m.group(1) for m in pattern.finditer(wikitext)]
+
+
 # ---------------------------------------------------------------------------
 # Main extraction logic
 # ---------------------------------------------------------------------------
@@ -289,16 +301,35 @@ def extract_citations(input_path: str) -> None:
         key_to_id[dk] = cid
         return cid
 
-    # Walk every revision and section
+    # name->citation_id index, built from all ref definitions across all revisions.
+    name_to_id: dict[str, str] = {}
+
+    # Pass 1: register all ref definitions and build the name index.
+    for revision in data.get('revisions', []):
+        for section_content in revision.get('section_text_after', {}).values():
+            wikitext = section_content.get('wikitext', '')
+            for ref_name, content in extract_refs(wikitext):
+                cid = get_or_create_citation(ref_name, content)
+                if ref_name and ref_name not in name_to_id:
+                    name_to_id[ref_name] = cid
+
+    # Pass 2: assign citation_ids per revision, resolving back-references.
     for revision in data.get('revisions', []):
         rev_citation_ids: list[str] = []
         seen_in_rev: set[str] = set()
 
-        for section_name, section_content in revision.get('section_text_after', {}).items():
+        for section_content in revision.get('section_text_after', {}).values():
             wikitext = section_content.get('wikitext', '')
+            # Inline ref definitions
             for ref_name, content in extract_refs(wikitext):
                 cid = get_or_create_citation(ref_name, content)
                 if cid not in seen_in_rev:
+                    rev_citation_ids.append(cid)
+                    seen_in_rev.add(cid)
+            # Back-references resolved via the global name index
+            for ref_name in extract_ref_names(wikitext):
+                cid = name_to_id.get(ref_name)
+                if cid and cid not in seen_in_rev:
                     rev_citation_ids.append(cid)
                     seen_in_rev.add(cid)
 
@@ -307,9 +338,17 @@ def extract_citations(input_path: str) -> None:
     # -----------------------------------------------------------------------
     # Write citations.json
     # -----------------------------------------------------------------------
+    raw_ref_index = {
+        cit['raw_ref'].strip(): cid
+        for cid, cit in citations_by_id.items()
+        if cit.get('raw_ref', '').strip()
+    }
+
     citations_out = {
         'article': data.get('article'),
         'total_unique_citations': len(citations_by_id),
+        'ref_name_index': name_to_id,
+        'raw_ref_index': raw_ref_index,
         'citations': list(citations_by_id.values()),
     }
 

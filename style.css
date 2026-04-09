@@ -155,3 +155,18 @@ p{
 .references-list a:hover {
   text-decoration: underline;
 }
+
+.cite-ref {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.cite-ref a {
+  color: #0645ad;
+  text-decoration: none;
+}
+
+.cite-ref a:hover {
+  text-decoration: underline;
+}
