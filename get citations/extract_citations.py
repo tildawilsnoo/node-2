@@ -144,8 +144,15 @@ def parse_ref_content(content: str, ref_name: str | None) -> dict:
     template_match = re.search(
         r'\{\{(?:cite\s+\w+|citation)\b.*?\}\}', content, re.IGNORECASE | re.DOTALL
     )
-    if template_match:
-        template_str = template_match.group()
+    template_str = template_match.group() if template_match else None
+
+    # Fallback: template may be truncated (wikitext cut off before closing }})
+    if template_str is None:
+        trunc = re.search(r'\{\{(?:cite\s+\w+|citation)\b', content, re.IGNORECASE)
+        if trunc:
+            template_str = content[trunc.start():]
+
+    if template_str is not None:
         cite_type_match = re.match(r'\{\{cite\s+(\w+)', template_str, re.IGNORECASE)
         if cite_type_match:
             cite_type = cite_type_match.group(1).lower()

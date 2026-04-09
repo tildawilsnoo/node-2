@@ -146,7 +146,13 @@ def main():
             section_text_after = {}
             for name in changed:
                 wikitext = curr_sections.get(name, "")
-                plaintext = mwparserfromhell.parse(wikitext).strip_code().strip()
+                parsed = mwparserfromhell.parse(wikitext)
+                for tag in parsed.filter_tags(matches=lambda t: str(t.tag).lower() == "ref"):
+                    try:
+                        parsed.remove(tag)
+                    except ValueError:
+                        pass
+                plaintext = parsed.strip_code().strip()
                 section_text_after[name] = {
                     "wikitext": wikitext,
                     "plaintext": plaintext,

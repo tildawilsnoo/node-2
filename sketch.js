@@ -20,6 +20,21 @@ function setup() {
     if (c.url) urlToId[c.url.trim().replace(/\/$/, '')] = c.citation_id;
   }
   showEdit();
+
+  let jumpInput = select('#jump-input');
+  let jumpMsg   = select('#jump-msg');
+  jumpInput.elt.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    let id = parseInt(jumpInput.elt.value.trim());
+    let idx = data.revisions.findIndex(r => r.revid === id);
+    if (idx === -1) {
+      jumpMsg.html('not found');
+    } else {
+      edit = idx;
+      showEdit();
+      jumpMsg.html('');
+    }
+  });
 }
 
 function keyPressed() {
@@ -43,10 +58,19 @@ function showEdit() {
   let cidToNumber = {};
   citationIds.forEach((cid, i) => { cidToNumber[cid] = i + 1; });
 
-  let html = e.changed_sections.map(name => {
+  let sections = e.changed_sections.map(name => {
     let section = e.section_text_after[name];
     let text = section ? wikitextToPlaintext(section.wikitext, cidToNumber) : '';
-    if (!text) return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
+    return { name, text };
+  });
+
+  let hasAnyText = sections.some(s => s.text);
+
+  let html = sections.map(({ name, text }) => {
+    if (!text) {
+      if (hasAnyText) return '';
+      return `<div class="section-block"><div class="section-removed">section removed</div></div>`;
+    }
     return `<div class="section-block">
       <div class="section-heading">${name}</div>
       <div class="section-body"><p>${text}</p></div>
@@ -164,8 +188,10 @@ function wikitextToPlaintext(wikitext, cidToNumber = {}) {
   }
 
   let text = wikitext
+    .replace(/\[\[(?:File|Image):(?:[^\[\]]|\[\[[^\]]*\]\])*\]\]/gi, '') // remove File/Image embeds (handles nested wikilinks in captions)
     .replace(/<ref\b([^>]*)>([\s\S]*?)<\/ref>/gi, (_, attrs, content) => refPlaceholder(attrs, content))
     .replace(/<ref\b([^>]*)\/>/gi, (_, attrs) => refPlaceholder(attrs))
+    .replace(/\n(\x00CITE\d+\x00)/g, '$1')            // drop newline before inline cite superscripts
     .replace(/<!--[\s\S]*?-->/g, '')                  // remove HTML comments
     .replace(/\{\{[^{}]*\}\}/g, '')                   // remove {{templates}}
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1') // [[Target|Label]] -> Label
@@ -191,13 +217,11 @@ function styleText() {
 }
 
 function renderTimeline() {
-  let timestamps = data.revisions.map(e => new Date(e.timestamp));
-  let firstTime = timestamps[0];
-  let lastTime  = timestamps[timestamps.length - 1];
-  let totalRange = lastTime - firstTime;
+  let start = new Date('2013-04-15T00:00:00Z');
+  let end   = new Date('2013-05-16T00:00:00Z'); // exclusive — gives May 15 a full day
 
   function toPct(t) {
-    return totalRange === 0 ? 50 : (t - firstTime) / totalRange * 100;
+    return (t - start) / (end - start) * 100;
   }
 
   let container = select('#timeline');
@@ -207,31 +231,62 @@ function renderTimeline() {
   track.class('timeline-track');
   track.parent(container);
 
-  // day markers — tick + label at midnight of each day
-  let seenDays = new Set();
-  for (let e of data.revisions) {
-    let date = e.timestamp.split('T')[0];
-    if (seenDays.has(date)) continue;
-    seenDays.add(date);
-    let midnight = new Date(`${date}T00:00:00Z`);
-    let pct = Math.max(0, Math.min(100, toPct(midnight)));
+  // one tick + label per day, April 15 – May 15
+  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let d = new Date(start);
+  let firstDay = true;
+  while (d < end) {
+    let pct = toPct(d);
 
-    let tick = createDiv('');
-    tick.class('timeline-tick');
-    tick.style('left', pct + '%');
-    tick.parent(container);
+    if (!firstDay) {
+      let tick = createDiv('');
+      tick.class('timeline-tick');
+      tick.style('left', pct + '%');
+      tick.parent(container);
+    }
+    firstDay = false;
 
-    let label = createDiv(midnight.getUTCDate());
+    let dayNum = d.getUTCDate();
+    let labelText = dayNum === 1 ? months[d.getUTCMonth()] : String(dayNum);
+    let label = createDiv(labelText);
     label.class('timeline-day-label');
     label.style('left', pct + '%');
     label.parent(container);
+
+    d = new Date(d.getTime() + 86400000);
   }
+
+  // bomb marker — 2:49 PM EDT (UTC-4) on April 15
+  let bombTime = new Date('2013-04-15T18:49:00Z');
+  let bombMarker = createDiv('');
+  bombMarker.class('timeline-event up');
+  bombMarker.style('left', toPct(bombTime) + '%');
+  bombMarker.parent(container);
+  createDiv('bomb detonates').class('timeline-event-label').parent(bombMarker);
+
+  // MIT shooting marker — 10:48 PM EDT (UTC-4) on April 18
+  let mitTime = new Date('2013-04-19T02:48:00Z');
+  let mitMarker = createDiv('');
+  mitMarker.class('timeline-event down');
+  mitMarker.style('left', toPct(mitTime) + '%');
+  mitMarker.parent(container);
+  createDiv('MIT shooting').class('timeline-event-label').parent(mitMarker);
+
+  // arrest marker — 8:42 PM EDT (UTC-4) on April 19
+  let arrestTime = new Date('2013-04-20T00:42:00Z');
+  let arrestMarker = createDiv('');
+  arrestMarker.class('timeline-event up');
+  arrestMarker.style('left', toPct(arrestTime) + '%');
+  arrestMarker.parent(container);
+  createDiv('Tsarnaev arrested').class('timeline-event-label').parent(arrestMarker);
 
   // one dot per revision
   for (let i = 0; i < data.revisions.length; i++) {
+    let t = new Date(data.revisions[i].timestamp);
+    let pct = Math.max(0, Math.min(100, toPct(t)));
     let dot = createDiv('');
     dot.class(i === edit ? 'timeline-dot current' : 'timeline-dot');
-    dot.style('left', toPct(timestamps[i]) + '%');
+    dot.style('left', pct + '%');
     dot.parent(container);
 
     let idx = i;
