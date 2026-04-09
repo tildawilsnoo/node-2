@@ -1,6 +1,6 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 API_URL = "https://en.wikipedia.org/w/api.php"
 TITLE = "Boston Marathon bombing"
@@ -73,12 +73,10 @@ def main():
     print(f"Looking up first edit to: {TITLE}")
     start_ts = get_first_revision_timestamp()
 
-    start_dt = datetime.fromisoformat(start_ts.replace("Z", "+00:00"))
-    end_dt = start_dt + timedelta(days=30)
-    end_ts = end_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    end_ts = "2013-05-16T04:00:00Z"  # end of May 15 EDT (midnight EDT = UTC-4)
 
     print(f"First edit:      {start_ts}")
-    print(f"Fetching until:  {end_ts} (30 days later)")
+    print(f"Fetching until:  {end_ts} (end of May 15 EDT)")
 
     revisions = fetch_revisions(start_ts, end_ts)
 

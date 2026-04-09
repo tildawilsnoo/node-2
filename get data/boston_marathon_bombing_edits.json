@@ -1,8 +1,8 @@
 {
   "article": "Boston Marathon bombing",
   "period_start": "2013-04-15T19:27:30Z",
-  "period_end": "2013-05-15T19:27:30Z",
-  "total_revisions": 5836,
+  "period_end": "2013-05-16T04:00:00Z",
+  "total_revisions": 5845,
   "revisions": [
     {
       "revid": 550523313,
@@ -5201,7 +5201,7 @@
       "userid": 10749899,
       "timestamp": "2013-04-15T21:56:38Z",
       "size": 17477,
-      "comment": ""
+      "comment": "/* Suspected perpetrators */ <ref>{{cite web|url=https://twitter.com/NBCNews/status/323911328832036864|title=Officials say that Boston PD are \"guarding\" a wounded man at a Boston hospital as a \"possible suspect\"|publisher=NBC}}</ref>"
     },
     {
       "revid": 550545510,
@@ -54276,6 +54276,89 @@
       "userid": 0,
       "timestamp": "2013-05-15T16:28:06Z",
       "size": 155476,
+      "comment": ""
+    },
+    {
+      "revid": 555309151,
+      "parentid": 555233896,
+      "user": "18.244.6.140",
+      "anon": "",
+      "userid": 0,
+      "timestamp": "2013-05-16T02:47:30Z",
+      "size": 155476,
+      "comment": "/* Deaths */"
+    },
+    {
+      "revid": 555310669,
+      "parentid": 555309151,
+      "user": "Bbb23",
+      "userid": 7583140,
+      "timestamp": "2013-05-16T03:03:27Z",
+      "size": 155476,
+      "comment": "Undid revision 555309151 by [[Special:Contributions/18.244.6.140|18.244.6.140]] ([[User talk:18.244.6.140|talk]]) - actually, it's 26 per the cited source"
+    },
+    {
+      "revid": 555312860,
+      "parentid": 555310669,
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:28:21Z",
+      "size": 155446,
+      "comment": "Collier was incorrectly IDed as 26, MIT corrected this to 27"
+    },
+    {
+      "revid": 555313313,
+      "parentid": 555312860,
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:33:02Z",
+      "size": 155440,
+      "comment": "/* Deaths */ Collier was 27, see new source"
+    },
+    {
+      "revid": 555313498,
+      "parentid": 555313313,
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:35:01Z",
+      "size": 155411,
+      "comment": "/* MIT shooting */"
+    },
+    {
+      "revid": 555313617,
+      "parentid": 555313498,
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:36:15Z",
+      "size": 155268,
+      "comment": "/* References */ MIT link no longer works"
+    },
+    {
+      "revid": 555314807,
+      "parentid": 555313617,
+      "user": "VQuakr",
+      "userid": 5197671,
+      "timestamp": "2013-05-16T03:49:30Z",
+      "size": 155411,
+      "comment": "Undid revision 555313617 by [[Special:Contributions/Hot Stop|Hot Stop]] ([[User talk:Hot Stop|talk]]) see [[WP:LINKROT]]"
+    },
+    {
+      "revid": 555315202,
+      "parentid": 555314807,
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:53:28Z",
+      "size": 154930,
+      "comment": "/* References */ ref 1 (Time) not needed"
+    },
+    {
+      "revid": 555315425,
+      "parentid": 555315202,
+      "minor": "",
+      "user": "Vaulter",
+      "userid": 14370884,
+      "timestamp": "2013-05-16T03:55:54Z",
+      "size": 154930,
       "comment": ""
     }
   ]
