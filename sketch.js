@@ -8,45 +8,8 @@ let edit = 0;
 
 // Canonical article section order (grouped by how they appeared in the article structure)
 const SECTION_ORDER = [
-  'Attackers',
-  'Suspect',
+  'Investigation',
   'Suspects',
-  'Suspected perpetrators',
-  'Perpetrators',
-  'Suspect photos released',
-  'Description and identification of suspects',
-  'Identification of suspects: Dzhokhar and Tamerlan Tsarnaev',
-  'Identification: Dzhokhar and Tamerlan Tsarnaev',
-  'FBI releases images of suspects',
-  'Saudi suspect detained',
-  'False suspect',
-  'False reports of arrests',
-  'Error in suspect identification',
-  'Wrong suspect identification',
-  'People mistakenly identified as suspects',
-  'Other people identified or arrested as suspects',
-  'MIT shooting',
-  'MIT Shooting',
-  'MIT shooting and suspect arrest',
-  'MIT shooting and arrest',
-  'MIT shooting and Watertown incident',
-  'MIT shooting and Watertown incidents',
-  'Manhunt and capture',
-  'Manhunt and captures',
-  'Arrest',
-  'Arrests',
-  'Other arrests',
-  'Other arrests and detentions',
-  'Other people arrested',
-  'Criminal proceedings',
-  'Post-arrest',
-  'Suspect Backgrounds',
-  'Suspects background',
-  "Suspects' background",
-  "Suspects' family",
-  'Criticism of manhunt',
-  'Criticism of the manhunt',
-  'Critical reactions to the manhunt',
 ];
 
 function preload() {
@@ -71,6 +34,17 @@ function setup() {
     }
     rev.sectionSnapshot = Object.assign({}, sectionState);
   }
+
+  // Filter out revisions where the visible plaintext didn't change
+  let prevPlaintext = null;
+  data.revisions = data.revisions.filter(rev => {
+    let plaintext = SECTION_ORDER
+      .map(name => (rev.sectionSnapshot[name] || {}).plaintext || '')
+      .join('\n');
+    if (plaintext === prevPlaintext) return false;
+    prevPlaintext = plaintext;
+    return true;
+  });
 
   showEdit();
 
@@ -269,14 +243,28 @@ function wikitextToPlaintext(wikitext, cidToNumber = {}) {
     .replace(/<ref\b([^>]*)\/>/gi, (_, attrs) => refPlaceholder(attrs))
     .replace(/\n(\x00CITE\d+\x00)/g, '$1')            // drop newline before inline cite superscripts
     .replace(/<!--[\s\S]*?-->/g, '')                  // remove HTML comments
+    .replace(/\{\{lang(?:-[a-z]+)?\|(?:[a-z-]+\|)?([^}|]+)\}\}/gi, '$1') // {{lang-ru|text}} → text
+    .replace(/\{\{(?:birth|death) date(?:[^|{}]*)?\|(\d{4})\|(\d{1,2})\|(\d{1,2})[^}]*\}\}/gi, (_, y, m, d) => { // {{Birth/Death date|Y|M|D}} → formatted date
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      return `${months[+m-1]} ${+d}, ${y}`;
+    })
     .replace(/\{\{[^{}]*\}\}/g, '')                   // remove {{templates}}
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1') // [[Target|Label]] -> Label
     .replace(/'{2,3}([^']+)'{2,3}/g, '$1')            // ''italic''/'''bold''' -> text
     .replace(/<[^>]+>/g, '')                          // strip remaining HTML tags
+    .replace(/^={3,}\s*(.+?)\s*={3,}\s*$/gm, '\n\n<span class="section-subheading">$1</span>\n\n') // ===subheadings===
+    .replace(/((?:^[*#][^\n]*\n?)+)/gm, match => {         // wiki bullet/numbered lists → <ul>/<ol><li>
+      const isOrdered = match.trimStart().startsWith('#');
+      const tag = isOrdered ? 'ol' : 'ul';
+      const items = match.trim().split('\n').filter(l => l.trim())
+        .map(l => `<li>${l.replace(/^[*#]+\s*/, '')}</li>`).join('');
+      return `\n<${tag}>${items}</${tag}>\n`;
+    })
     .replace(/thumb(?:nail)?\|(?:(?:right|left|center|\d+px)\|)?[^\n]*/gi, '')
     .replace(/\[https?:\/\/\S+\]/g, '')                   // remove bare [url] links (no title)
     .replace(/https?:\/\/\S+/g, '')
     .replace(/\[\]/g, '')                                  // remove empty brackets left after URL removal
+    .replace(/\([^)]*\)/g, m => m.replace(/\s|[-–—,;]/g, '').length > 2 ? m : '') // remove parentheticals that are empty or contain only punctuation
     .replace(/\[\d+\]/g, '')                               // strip legacy [N] citation markers
     .replace(/[^\s\x00]+\s*\(talk\)\s*\d{2}:\d{2},\s*\d+\s+\w+\s+\d{4}\s*\(UTC\)/g, '')
     .replace(/\n{3,}/g, '\n\n')

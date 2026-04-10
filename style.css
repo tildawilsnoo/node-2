@@ -82,6 +82,15 @@ body {
   color: #000;
 }
 
+.section-subheading {
+  display: block;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+}
+
 #text {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
