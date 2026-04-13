@@ -10,6 +10,9 @@ let edit = 0;
 const SECTION_ORDER = [
   'Investigation',
   'Suspects',
+  'Arrest', 'Arrests',
+  'Other arrests', 'Other arrests and detentions',
+  'Conflicting reports',
 ];
 
 function preload() {
@@ -372,7 +375,9 @@ function renderTimeline() {
     let t = new Date(data.revisions[i].timestamp);
     let pct = Math.max(0, Math.min(100, toPct(t)));
     let dot = createDiv('');
-    dot.class(i === edit ? 'timeline-dot current' : 'timeline-dot');
+    let subplot = data.revisions[i].subplot;
+    let dotClass = 'timeline-dot' + (subplot ? ' subplot-' + subplot : '') + (i === edit ? ' current' : '');
+    dot.class(dotClass);
     dot.style('left', pct + '%');
     dot.parent(container);
 

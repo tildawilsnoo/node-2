@@ -85,7 +85,7 @@ body {
 .section-subheading {
   display: block;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 1.1em;
+  font-size: 1.2em;
   font-weight: bold;
   margin-top: 0.5em;
   margin-bottom: 0.25em;
@@ -210,6 +210,13 @@ p{
   background: rgba(90, 130, 180, 0.45);
   cursor: pointer;
 }
+
+.timeline-dot.subplot-saudi_suspect        { background: rgba(231, 76,  60,  0.6); }
+.timeline-dot.subplot-suspect_identification { background: rgba(52,  152, 219, 0.6); }
+.timeline-dot.subplot-jeff_bauman          { background: rgba(46,  204, 113, 0.6); }
+.timeline-dot.subplot-sunil_tripathi       { background: rgba(230, 126, 34,  0.6); }
+.timeline-dot.subplot-radicalization       { background: rgba(155, 89,  182, 0.6); }
+.timeline-dot.subplot-conflicting_reports  { background: rgba(241, 196, 15,  0.6); }
 
 .timeline-dot.current {
   background: #b39ddb;

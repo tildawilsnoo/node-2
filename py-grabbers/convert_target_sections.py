@@ -19,7 +19,13 @@ EDITS_FILE  = Path(__file__).parent.parent / "edits_with_citations.json"
 CITS_FILE   = Path(__file__).parent.parent / "citations.json"
 
 # Sections to track (top-level == sections)
-TARGET_SECTIONS = {"Investigation", "Suspects"}
+TARGET_SECTIONS = {
+    "Investigation",
+    "Suspects",
+    "Arrest", "Arrests",
+    "Other arrests", "Other arrests and detentions",
+    "Conflicting reports",
+}
 
 SECTION_RE = re.compile(r"^(={2,})\s*(.+?)\s*\1\s*$")
 
@@ -297,13 +303,15 @@ def main():
 
     name_to_id: dict[str, str] = {}
 
-    # First sub-pass: register all ref definitions
-    for rev in revisions_out:
-        for sc in rev["section_text_after"].values():
-            for ref_name, content in extract_refs(sc["wikitext"]):
-                cid = get_or_create(ref_name, content)
-                if ref_name and ref_name not in name_to_id:
-                    name_to_id[ref_name] = cid
+    # First sub-pass: register ALL ref definitions from full article wikitext
+    # (not just target sections) so back-references like <ref name="foo"/>
+    # defined in untracked sections can still be resolved.
+    print("  Scanning full article wikitext for ref definitions…")
+    for entry in raw:
+        for ref_name, content in extract_refs(entry.get("wikitext", "")):
+            cid = get_or_create(ref_name, content)
+            if ref_name and ref_name not in name_to_id:
+                name_to_id[ref_name] = cid
 
     # Second sub-pass: assign citation_ids per revision
     for rev in revisions_out:
