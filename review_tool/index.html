@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Reviewer</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f2f3f5;
+  color: #111;
+  min-height: 100vh;
+  padding-bottom: 120px;
+}
+
+/* ── top bar ──────────────────────────────────────────── */
+#topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.progress-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+.progress-track {
+  flex: 1; height: 5px; background: #e0e0e0;
+  border-radius: 3px; overflow: hidden; min-width: 80px;
+}
+.progress-fill {
+  height: 100%; background: #6366f1;
+  border-radius: 3px; transition: width .25s;
+}
+#lbl-pos    { font-size: 13px; color: #555; white-space: nowrap; }
+#lbl-tagged { font-size: 13px; color: #16a34a; font-weight: 600; white-space: nowrap; }
+
+#jump-form { display: flex; gap: 5px; }
+#jump-input {
+  width: 72px; padding: 4px 8px;
+  border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
+}
+.btn-xs {
+  padding: 4px 10px; font-size: 12px;
+  border: 1px solid #ccc; border-radius: 4px;
+  background: #fff; cursor: pointer; white-space: nowrap;
+}
+.btn-xs:hover { background: #f5f5f5; }
+
+/* ── main content ─────────────────────────────────────── */
+#main { max-width: 880px; margin: 18px auto; padding: 0 16px; }
+
+/* ── cards ────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+/* ── meta card ────────────────────────────────────────── */
+#meta-inner { padding: 14px 16px; }
+.meta-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+#meta-ts   { font-size: 12px; color: #999; }
+#meta-user { font-size: 15px; font-weight: 700; }
+#meta-comment {
+  margin-top: 6px;
+  font-size: 13px; color: #444; font-style: italic; line-height: 1.5;
+}
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 9px; border-radius: 12px;
+  font-size: 11.5px; color: #555; background: #f0f0f0;
+}
+.pill.auto-sub   { background: #fef9c3; color: #854d0e; }
+.pill.manual-sub { background: #dcfce7; color: #166534; font-weight: 700; }
+.pill.revid      { margin-left: auto; font-family: monospace; font-size: 11px; }
+
+/* ── diff card ────────────────────────────────────────── */
+.sec-label {
+  padding: 7px 14px;
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: #888; background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+.no-parent { padding: 9px 14px; font-size: 12px; color: #aaa; background: #fafafa; }
+.no-change { padding: 12px 14px; font-size: 13px; color: #999; }
+
+/* diff lines */
+.dl {
+  display: flex;
+  font-family: 'Menlo', 'Consolas', 'SF Mono', monospace;
+  font-size: 12.5px; line-height: 1.55;
+}
+.dl-g {
+  width: 22px; flex-shrink: 0;
+  text-align: center; font-size: 11px; padding-top: 1px;
+  user-select: none;
+}
+.dl-t { flex: 1; padding: 1px 14px 1px 3px; white-space: pre-wrap; word-break: break-word; }
+
+.dl-add { background: #f0fdf4; }
+.dl-add .dl-g { color: #16a34a; background: #bbf7d0; }
+.dl-add .dl-t { color: #14532d; }
+
+.dl-rem { background: #fff5f5; }
+.dl-rem .dl-g { color: #dc2626; background: #fecaca; }
+.dl-rem .dl-t { color: #7f1d1d; }
+
+.dl-eq { }
+.dl-eq .dl-g { color: #d1d5db; }
+.dl-eq .dl-t { color: #9ca3af; }
+
+.wd-rem { background: #fca5a5; border-radius: 2px; padding: 0 1px; }
+.wd-add { background: #6ee7b7; border-radius: 2px; padding: 0 1px; }
+
+.full-text-toggle {
+  padding: 7px 16px;
+  font-size: 11.5px; color: #94a3b8;
+  background: #f8fafc; cursor: pointer;
+  border-top: 2px solid #e8ecf0;
+}
+.full-text-toggle:hover { background: #f0f4f8; color: #475569; }
+.full-text-body {
+  padding: 14px 16px;
+  font-size: 13px; line-height: 1.7; color: #374151;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+.dl-collapse {
+  padding: 4px 14px;
+  font-size: 11.5px; color: #94a3b8;
+  background: #f8fafc; cursor: pointer;
+  border-top: 1px solid #f0f4f8;
+  border-bottom: 1px solid #f0f4f8;
+}
+.dl-collapse:hover { background: #f0f4f8; color: #64748b; }
+
+/* ── subplot panel (fixed bottom) ────────────────────── */
+#sub-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #fff; border-top: 2px solid #e5e7eb;
+  padding: 10px 16px 12px; z-index: 100;
+}
+.sub-grid {
+  display: flex; gap: 7px; flex-wrap: wrap;
+  justify-content: center; max-width: 880px; margin: 0 auto;
+}
+.sb {
+  padding: 7px 13px;
+  border: 2px solid transparent; border-radius: 6px;
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  line-height: 1.3;
+}
+.sb:hover { opacity: .75; }
+.sb.active { border-color: #111 !important; box-shadow: 0 0 0 2px rgba(0,0,0,.12); }
+.sb .edit-icon {
+  display: none; margin-left: 5px; font-size: 10px;
+  opacity: .55; vertical-align: middle;
+}
+.sb:hover .edit-icon { display: inline; }
+
+.sb-0 { background: #f3f4f6; color: #6b7280; }
+
+.sb-rename-input {
+  padding: 6px 10px;
+  border: 2px solid #6366f1; border-radius: 6px;
+  font-size: 12.5px; font-weight: 500;
+  outline: none; min-width: 80px; max-width: 200px;
+}
+
+.custom-row {
+  display: flex; justify-content: center; margin-top: 8px;
+}
+#custom-form { display: flex; gap: 6px; }
+#custom-input {
+  width: 260px; padding: 5px 10px;
+  border: 1px solid #d1d5db; border-radius: 5px;
+  font-size: 13px; color: #111;
+}
+#custom-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px #e0e7ff; }
+
+.nav-row {
+  display: flex; gap: 8px; justify-content: center; margin-top: 8px;
+}
+.nav-btn {
+  padding: 5px 20px;
+  border: 1px solid #d1d5db; border-radius: 5px;
+  background: #fff; font-size: 13px; cursor: pointer; color: #374151;
+}
+.nav-btn:hover { background: #f9fafb; }
+.nav-btn.fwd { background: #f0f9ff; border-color: #6366f1; color: #4338ca; }
+.nav-btn.notable-on { background: #fefce8; border-color: #ca8a04; color: #854d0e; font-weight: 700; }
+
+.pill.notable { background: #fef08a; color: #713f12; font-weight: 700; }
+
+kbd {
+  display: inline-block; padding: 0 4px;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  font-size: 10px; color: #9ca3af; background: #f9fafb;
+  margin-left: 4px; vertical-align: middle; font-family: inherit;
+}
+
+#loading { text-align: center; padding: 70px 0; color: #aaa; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<!-- top bar -->
+<div id="topbar">
+  <div class="progress-wrap">
+    <span id="lbl-pos">—</span>
+    <div class="progress-track"><div class="progress-fill" id="prog" style="width:0"></div></div>
+    <span id="lbl-tagged">0 tagged</span>
+  </div>
+  <form id="jump-form">
+    <input id="jump-input" type="number" min="1" placeholder="edit #" title="Jump to edit number">
+    <button type="submit" class="btn-xs">Go</button>
+  </form>
+  <button class="btn-xs" id="btn-untagged">→ first untagged</button>
+</div>
+
+<!-- main -->
+<div id="main">
+  <div id="loading">Loading…</div>
+  <div id="error-msg" style="display:none; color:#dc2626; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:20px; margin-top:20px; font-size:14px; line-height:1.6;"></div>
+
+  <div id="content" style="display:none">
+    <div class="card"><div id="meta-inner">
+      <div class="meta-top">
+        <span id="meta-ts"></span>
+        <span id="meta-user"></span>
+      </div>
+      <div id="meta-comment"></div>
+      <div class="pills" id="pills"></div>
+    </div></div>
+
+    <div class="card" id="diff-card"></div>
+  </div>
+</div>
+
+<!-- subplot panel -->
+<div id="sub-panel">
+  <div class="sub-grid" id="sub-grid"></div>
+  <div class="custom-row">
+    <form id="custom-form">
+      <input id="custom-input" type="text" placeholder="or type any subplot name…" autocomplete="off" spellcheck="false">
+      <button type="submit" class="nav-btn fwd">Assign</button>
+    </form>
+  </div>
+  <div class="nav-row">
+    <button class="nav-btn" id="btn-back"><kbd>←</kbd> Back</button>
+    <button class="nav-btn fwd" id="btn-skip">Skip <kbd>→</kbd></button>
+    <button class="nav-btn" id="btn-notable" title="Mark as notable (N)">☆ Notable</button>
+  </div>
+</div>
+
+<script>
+// Colors cycled for custom subplot buttons (bg, text)
+const PALETTE = [
+  ['#fef3c7','#78350f'], ['#dbeafe','#1e3a8a'], ['#ede9fe','#4c1d95'],
+  ['#fce7f3','#831843'], ['#fee2e2','#7f1d1d'], ['#d1fae5','#064e3b'],
+  ['#ffedd5','#7c2d12'], ['#e0f2fe','#0c4a6e'], ['#fdf4ff','#701a75'],
+  ['#f0fdf4','#14532d'], ['#fff7ed','#7c2d12'], ['#f8fafc','#334155'],
+  ['#fefce8','#713f12'], ['#ecfdf5','#065f46'], ['#eff6ff','#1e40af'],
+  ['#fdf2f8','#701a75'], ['#f5f3ff','#4c1d95'], ['#fff1f2','#881337'],
+];
+
+let subplots = [];
+
+function getSubplots() { return subplots; }
+function saveSubplots(list) { subplots = list; }
+
+function renderButtons() {
+  const grid = document.getElementById('sub-grid');
+  grid.innerHTML = '';
+  const list = getSubplots();
+  list.forEach((slug, i) => {
+    const [bg, color] = PALETTE[i % PALETTE.length];
+    const btn = document.createElement('button');
+    const activeSlug = rev?.manual_subplot || rev?.auto_subplot;
+    btn.className = 'sb' + (activeSlug === slug ? ' active' : '');
+    btn.dataset.slug = slug;
+    btn.style.cssText = `background:${bg};color:${color}`;
+    btn.innerHTML = (i < 9 ? `<kbd>${i+1}</kbd> ` : '') + slug +
+                    `<span class="edit-icon" title="Rename">✎</span>`;
+    btn.addEventListener('click', () => assign(slug));
+    btn.querySelector('.edit-icon').addEventListener('click', e => {
+      e.stopPropagation();
+      startRename(btn, slug, i);
+    });
+    grid.appendChild(btn);
+  });
+  // always-present clear button
+  const clr = document.createElement('button');
+  clr.className = 'sb sb-0' + (rev && !rev.manual_subplot ? ' active' : '');
+  clr.dataset.slug = '';
+  clr.innerHTML = '<kbd>0</kbd> None / clear';
+  clr.addEventListener('click', () => assign(''));
+  grid.appendChild(clr);
+}
+
+async function startRename(btn, oldSlug, listIdx) {
+  const [bg, color] = PALETTE[listIdx % PALETTE.length];
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = oldSlug;
+  input.className = 'sb-rename-input';
+  input.style.cssText = `background:${bg};color:${color}`;
+  btn.replaceWith(input);
+  input.select();
+
+  let committed = false;
+  async function commit() {
+    if (committed) return;
+    committed = true;
+    const newSlug = input.value.trim();
+    if (!newSlug || newSlug === oldSlug) { renderButtons(); return; }
+
+    const list = getSubplots();
+    if (list.includes(newSlug)) {
+      // merge: drop the old slug, keep the existing new one
+      list.splice(listIdx, 1);
+    } else {
+      list[listIdx] = newSlug;
+    }
+    saveSubplots(list);
+
+    await api('/api/rename', { old: oldSlug, new: newSlug });
+
+    // patch local rev so active state is correct without a reload
+    if (rev?.manual_subplot === oldSlug) rev.manual_subplot = newSlug;
+    renderButtons();
+    if (rev) render(rev);
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { committed = true; renderButtons(); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+let idx  = parseInt(localStorage.getItem('reviewIdx') || '0');
+let rev  = null;
+let busy = false;
+
+// ── API ──────────────────────────────────────────────────
+async function api(path, body) {
+  const opts = body
+    ? { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }
+    : {};
+  const r = await fetch(path, opts);
+  const txt = await r.text();
+  console.log('API response', path, r.status, txt.slice(0, 100));
+  try {
+    return JSON.parse(txt);
+  } catch (e) {
+    throw new Error(`Server replied (HTTP ${r.status}):\n${txt.slice(0, 400)}`);
+  }
+}
+
+// ── Navigation ───────────────────────────────────────────
+function save(i) { idx = i; localStorage.setItem('reviewIdx', i); }
+
+async function load(i) {
+  if (busy) return;
+  busy = true;
+  const errEl = document.getElementById('error-msg');
+  errEl.style.display = 'none';
+  document.getElementById('loading').style.display = '';
+  document.getElementById('content').style.display = 'none';
+  try {
+    rev = await api(`/api/revision?idx=${i}`);
+    save(i);
+    render(rev);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = '';
+  } catch (err) {
+    console.error('load() failed:', err);
+    document.getElementById('loading').style.display = 'none';
+    errEl.innerHTML = `<strong>Could not load data.</strong><br><br>` +
+      `Error: <code>${err.message}</code><br><br>` +
+      `Make sure the server is running:<br>` +
+      `<code>python3 review_tool/server.py</code><br><br>` +
+      `Then open <a href="http://localhost:8765">http://localhost:8765</a> in your browser ` +
+      `(not the file directly).`;
+    errEl.style.display = '';
+  } finally {
+    busy = false;
+  }
+}
+
+async function assign(slug) {
+  if (!rev) return;
+  await api('/api/assign', { revid: rev.revid, manual_subplot: slug || null });
+  const next = idx + 1;
+  if (next < rev.total) load(next); else done();
+}
+
+async function skip()  { if (rev && idx + 1 < rev.total) load(idx + 1); else done(); }
+async function back()  { if (idx > 0) load(idx - 1); }
+function done() { document.getElementById('main').innerHTML = '<div id="loading">All done!</div>'; }
+
+// ── Render ───────────────────────────────────────────────
+function render(r) {
+  // progress
+  const pct = r.total > 0 ? ((r.idx + 1) / r.total * 100).toFixed(1) : 0;
+  document.getElementById('lbl-pos').textContent    = `${r.idx + 1} / ${r.total}`;
+  document.getElementById('prog').style.width       = pct + '%';
+  document.getElementById('lbl-tagged').textContent = `${r.tagged} manually tagged`;
+
+  // sync subplot button list from server
+  if (Array.isArray(r.all_subplots)) subplots = r.all_subplots;
+
+  // meta
+  const ts = new Date(r.timestamp);
+  document.getElementById('meta-ts').textContent   =
+    ts.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) + '  ' +
+    ts.toISOString().slice(11,16) + ' UTC';
+  document.getElementById('meta-user').textContent    = r.user;
+  document.getElementById('meta-comment').textContent = r.comment || '(no comment)';
+
+  // pills
+  const pills = document.getElementById('pills');
+  pills.innerHTML = '';
+  const add = (text, cls) => {
+    const el = document.createElement('span');
+    el.className = 'pill' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+    pills.appendChild(el);
+  };
+  add('§ ' + (r.changed_sections || []).join(', '));
+  add((r.citation_ids || []).length + ' citation' + (r.citation_ids?.length !== 1 ? 's' : ''));
+  if (r.notable)         add('★ notable', 'notable');
+  if (r.auto_subplot)    add('auto: ' + r.auto_subplot, 'auto-sub');
+  if (r.manual_subplot)  add('✓ ' + r.manual_subplot, 'manual-sub');
+  add('rev ' + r.revid, 'revid');
+
+  const nb = document.getElementById('btn-notable');
+  nb.textContent = r.notable ? '★ Notable' : '☆ Notable';
+  nb.classList.toggle('notable-on', !!r.notable);
+
+  // diff
+  renderDiff(r);
+
+  // re-render buttons with updated active state
+  renderButtons();
+}
+
+// ── Diff rendering ───────────────────────────────────────
+function renderDiff(r) {
+  const card = document.getElementById('diff-card');
+  card.innerHTML = '';
+  const secs = r.changed_sections || [];
+
+  if (!secs.length) {
+    card.innerHTML = '<div class="no-change">(no changed sections recorded)</div>';
+    return;
+  }
+
+  for (const sec of secs) {
+    const data = (r.sections || {})[sec];
+    if (!data) continue;
+
+    if (secs.length > 1) {
+      const lbl = document.createElement('div');
+      lbl.className = 'sec-label';
+      lbl.textContent = sec;
+      card.appendChild(lbl);
+    }
+
+    if (!data.has_prev) {
+      const note = document.createElement('div');
+      note.className = 'no-parent';
+      note.textContent = '(first edit to this section in the dataset)';
+      card.appendChild(note);
+    }
+
+    const diff = data.diff || [];
+    if (!diff.length) {
+      const el = document.createElement('div');
+      el.className = 'no-change';
+      el.textContent = '(no plaintext change)';
+      card.appendChild(el);
+      continue;
+    }
+
+    renderDiffItems(collapseEqual(diff), card);
+
+    // full text toggle
+    if (data.after_text) {
+      const toggle = document.createElement('div');
+      toggle.className = 'full-text-toggle';
+      toggle.textContent = '▸ Show full section text at this point';
+      toggle.addEventListener('click', () => {
+        const existing = toggle.nextElementSibling;
+        if (existing && existing.classList.contains('full-text-body')) {
+          existing.remove();
+          toggle.textContent = '▸ Show full section text at this point';
+        } else {
+          const body = document.createElement('div');
+          body.className = 'full-text-body';
+          body.textContent = data.after_text;
+          toggle.after(body);
+          toggle.textContent = '▾ Hide full section text';
+        }
+      });
+      card.appendChild(toggle);
+    }
+  }
+}
+
+// ── Word-level diff ──────────────────────────────────────
+function wordDiff(a, b) {
+  // tokenise: preserve whitespace as separate tokens so spacing stays intact
+  const tok = s => s.match(/\S+|\s+/g) || [];
+  const A = tok(a), B = tok(b);
+  const m = A.length, n = B.length;
+  // LCS table
+  const dp = Array.from({length: m + 1}, () => new Uint16Array(n + 1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = A[i-1] === B[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  // traceback
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && A[i-1] === B[j-1])      { ops.unshift({t:'=', v:A[i-1]}); i--; j--; }
+    else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({t:'+', v:B[j-1]}); j--; }
+    else                                            { ops.unshift({t:'-', v:A[i-1]}); i--; }
+  }
+  return ops;
+}
+
+function makeWordDiffLines(oldText, newText) {
+  const ops = wordDiff(oldText, newText);
+  const remRow = makeBlankDiffLine('dl-rem', '−');
+  const addRow = makeBlankDiffLine('dl-add', '+');
+  for (const op of ops) {
+    if (op.t === '=' || op.t === '-') {
+      const s = document.createElement('span');
+      s.textContent = op.v;
+      if (op.t === '-') s.className = 'wd-rem';
+      else s.style.opacity = '.45';
+      remRow.text.appendChild(s);
+    }
+    if (op.t === '=' || op.t === '+') {
+      const s = document.createElement('span');
+      s.textContent = op.v;
+      if (op.t === '+') s.className = 'wd-add';
+      else s.style.opacity = '.45';
+      addRow.text.appendChild(s);
+    }
+  }
+  return [remRow.el, addRow.el];
+}
+
+function makeBlankDiffLine(cls, glyph) {
+  const el = document.createElement('div');
+  el.className = 'dl ' + cls;
+  const g = document.createElement('div'); g.className = 'dl-g'; g.textContent = glyph;
+  const t = document.createElement('div'); t.className = 'dl-t';
+  el.appendChild(g); el.appendChild(t);
+  return {el, text: t};
+}
+
+function renderDiffItems(items, container) {
+  let i = 0;
+  while (i < items.length) {
+    const item = items[i];
+    if (item.collapsed) { container.appendChild(makeCollapse(item)); i++; continue; }
+
+    if (item.t === '-') {
+      // collect consecutive removes then consecutive adds
+      const rems = [], adds = [];
+      while (i < items.length && !items[i].collapsed && items[i].t === '-') rems.push(items[i++]);
+      while (i < items.length && !items[i].collapsed && items[i].t === '+') adds.push(items[i++]);
+
+      if (adds.length > 0) {
+        const pairs = Math.min(rems.length, adds.length);
+        for (let k = 0; k < pairs; k++)
+          makeWordDiffLines(rems[k].v, adds[k].v).forEach(l => container.appendChild(l));
+        // unmatched leftovers rendered plain
+        for (let k = pairs; k < rems.length; k++) container.appendChild(makeLine(rems[k]));
+        for (let k = pairs; k < adds.length; k++) container.appendChild(makeLine(adds[k]));
+      } else {
+        rems.forEach(r => container.appendChild(makeLine(r)));
+      }
+      continue;
+    }
+
+    container.appendChild(makeLine(item));
+    i++;
+  }
+}
+
+function makeLine(d) {
+  const el  = document.createElement('div');
+  el.className = 'dl ' + (d.t === '+' ? 'dl-add' : d.t === '-' ? 'dl-rem' : 'dl-eq');
+  const g = document.createElement('div'); g.className = 'dl-g';
+  g.textContent = d.t === '+' ? '+' : d.t === '-' ? '−' : '';
+  const t = document.createElement('div'); t.className = 'dl-t';
+  t.textContent = d.v;
+  el.appendChild(g); el.appendChild(t);
+  return el;
+}
+
+function makeCollapse(item) {
+  const el = document.createElement('div');
+  el.className = 'dl-collapse';
+  el.textContent = `▸ ${item.count} unchanged line${item.count !== 1 ? 's' : ''} — click to expand`;
+  el.addEventListener('click', () => {
+    item.lines.map(makeLine).forEach(l => el.parentNode.insertBefore(l, el));
+    el.remove();
+  });
+  return el;
+}
+
+function collapseEqual(diff, ctx = 3) {
+  const changed = new Set();
+  diff.forEach((d, i) => { if (d.t !== '=') changed.add(i); });
+
+  if (!changed.size) {
+    return diff.length > 6 ? [{ collapsed: true, count: diff.length, lines: diff }] : diff;
+  }
+
+  const vis = new Set();
+  changed.forEach(i => {
+    for (let j = Math.max(0, i - ctx); j <= Math.min(diff.length - 1, i + ctx); j++) vis.add(j);
+  });
+
+  const out = [];
+  let i = 0;
+  while (i < diff.length) {
+    if (vis.has(i)) { out.push(diff[i++]); continue; }
+    const start = i;
+    while (i < diff.length && !vis.has(i)) i++;
+    const lines = diff.slice(start, i);
+    if (lines.length <= 3) lines.forEach(l => out.push(l));
+    else out.push({ collapsed: true, count: lines.length, lines });
+  }
+  return out;
+}
+
+// ── Events ───────────────────────────────────────────────
+document.getElementById('jump-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseInt(document.getElementById('jump-input').value);
+  if (!isNaN(v) && v >= 1) { load(v - 1); document.getElementById('jump-input').value = ''; }
+});
+
+document.getElementById('btn-untagged').addEventListener('click', async () => {
+  const d = await api('/api/first_untagged');
+  if (d.idx >= (rev?.total ?? Infinity)) {
+    alert('All edits have been classified.');
+  } else {
+    load(d.idx);
+  }
+});
+
+document.getElementById('btn-back').addEventListener('click', back);
+document.getElementById('btn-skip').addEventListener('click', skip);
+document.getElementById('btn-notable').addEventListener('click', toggleNotable);
+
+async function toggleNotable() {
+  if (!rev) return;
+  const next = !rev.notable;
+  await api('/api/notable', { revid: rev.revid, notable: next });
+  rev.notable = next;
+
+  // update button
+  const nb = document.getElementById('btn-notable');
+  nb.textContent = next ? '★ Notable' : '☆ Notable';
+  nb.classList.toggle('notable-on', next);
+
+  // update just the notable pill — don't touch the rest of the UI
+  const pills = document.getElementById('pills');
+  const existing = pills.querySelector('.pill.notable');
+  if (next && !existing) {
+    const el = document.createElement('span');
+    el.className = 'pill notable';
+    el.textContent = '★ notable';
+    pills.insertBefore(el, pills.firstChild);
+  } else if (!next && existing) {
+    existing.remove();
+  }
+}
+
+document.getElementById('custom-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const val = document.getElementById('custom-input').value.trim();
+  if (!val) return;
+  assign(val);
+  document.getElementById('custom-input').value = '';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); skip(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+  else if (e.key === '0') assign('');
+  else if (e.key === 'n' || e.key === 'N') toggleNotable();
+  else if (e.key >= '1' && e.key <= '9') {
+    const i = parseInt(e.key) - 1;
+    const list = getSubplots();
+    if (i < list.length) assign(list[i]);
+  }
+});
+
+// ── Init ─────────────────────────────────────────────────
+load(idx);
+</script>
+</body>
+</html>

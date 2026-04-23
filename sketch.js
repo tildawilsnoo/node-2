@@ -1,5 +1,6 @@
 let data;
 let citationsRaw;
+let activeFilter = null;
 let citationMap = {};
 let refNameToId = {};
 let urlToId = {};
@@ -49,6 +50,40 @@ function setup() {
     return true;
   });
 
+  // Populate filter buttons from unique subplot (auto-generated) values
+  const tags = [...new Set(
+    data.revisions.map(r => r.subplot).filter(Boolean)
+  )].sort();
+  const filterContainer = document.getElementById('filter-tags');
+  if (tags.length) {
+    const allBtn = document.createElement('button');
+    allBtn.textContent = 'All';
+    allBtn.className = 'filter-btn active';
+    allBtn.dataset.tag = '';
+    filterContainer.appendChild(allBtn);
+    for (const tag of tags) {
+      const btn = document.createElement('button');
+      btn.textContent = tag;
+      btn.className = 'filter-btn';
+      btn.dataset.tag = tag;
+      filterContainer.appendChild(btn);
+    }
+    filterContainer.addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      activeFilter = btn.dataset.tag || null;
+      filterContainer.querySelectorAll('.filter-btn').forEach(b =>
+        b.classList.toggle('active', b === btn)
+      );
+      // If current edit doesn't match new filter, jump to first match
+      if (activeFilter) {
+        const match = data.revisions.findIndex(r => r.subplot === activeFilter);
+        if (match !== -1) edit = match;
+      }
+      showEdit();
+    });
+  }
+
   showEdit();
 
   let jumpInput = select('#jump-input');
@@ -93,6 +128,8 @@ function showEdit() {
   }
 
   let snapshot = e.sectionSnapshot || {};
+  let prevSnapshot = edit > 0 ? data.revisions[edit - 1].sectionSnapshot : {};
+
   // Derive citation ids from all visible sections in order
   let allCitationIds = [];
   let cidSeen = new Set();
@@ -113,8 +150,17 @@ function showEdit() {
   });
 
   let sections = sortedEntries.map(([name, val]) => {
-    let text = wikitextToPlaintext(val.wikitext || '', cidToNumber);
-    return { name, text };
+    let currHTML = wikitextToPlaintext(val.wikitext || '', cidToNumber);
+    let prevVal = prevSnapshot[name];
+    if (prevVal) {
+      let prevHTML = wikitextToPlaintext(prevVal.wikitext || '', cidToNumber);
+      let currText = currHTML.replace(/<[^>]+>/g, '');
+      let prevText = prevHTML.replace(/<[^>]+>/g, '');
+      if (currText !== prevText) {
+        return { name, text: applyWordHighlights(currHTML, prevHTML) };
+      }
+    }
+    return { name, text: currHTML };
   });
 
   let hasAnyText = sections.some(s => s.text);
@@ -164,7 +210,7 @@ function renderReferences(citationIds) {
       parts.push(c.raw_ref);
     }
 
-    let venue = c.newspaper || c.work || c.publisher;
+    let venue = c.newspaper || c.publisher || c.work;
     if (venue) parts.push(`<i>${venue}</i>.`);
 
     if (c.date) parts.push(c.date + '.');
@@ -181,13 +227,25 @@ function renderReferences(citationIds) {
 }
 
 function prev() {
-  edit--;
-  showEdit();
+  if (activeFilter) {
+    for (let i = edit - 1; i >= 0; i--) {
+      if (data.revisions[i].subplot === activeFilter) { edit = i; showEdit(); return; }
+    }
+  } else {
+    edit--;
+    showEdit();
+  }
 }
 
 function next() {
-  edit++;
-  showEdit();
+  if (activeFilter) {
+    for (let i = edit + 1; i < data.revisions.length; i++) {
+      if (data.revisions[i].subplot === activeFilter) { edit = i; showEdit(); return; }
+    }
+  } else {
+    edit++;
+    showEdit();
+  }
 }
 
 function formatDateTime(timestamp) {
@@ -270,6 +328,8 @@ function wikitextToPlaintext(wikitext, cidToNumber = {}) {
     .replace(/\([^)]*\)/g, m => m.replace(/\s|[-–—,;]/g, '').length > 2 ? m : '') // remove parentheticals that are empty or contain only punctuation
     .replace(/\[\d+\]/g, '')                               // strip legacy [N] citation markers
     .replace(/[^\s\x00]+\s*\(talk\)\s*\d{2}:\d{2},\s*\d+\s+\w+\s+\d{4}\s*\(UTC\)/g, '')
+    .replace(/^[^\n]+\|thumb(?:nail)?(?:\|(?:right|left|center|\d+px))*\s*$/gim, '')
+    .replace(/thumb(?:nail)?(?:\|(?:right|left|center|\d+px))*\|[^\n]*/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -305,6 +365,88 @@ function styleText() {
     el.html(content);
   });
 }
+
+function applyWordHighlights(currHTML, prevHTML) {
+  // Strip <sup> blocks entirely (removes "[N]" citation text) then strip remaining tags.
+  // Both steps must match: the walker also skips <sup> blocks as non-text so the
+  // character offsets stay aligned with the stripped comparison text.
+  const stripForDiff = s => s.replace(/<sup[\s\S]*?<\/sup>/gi, '').replace(/<[^>]+>/g, '');
+  const currText = stripForDiff(currHTML);
+  const prevText = stripForDiff(prevHTML);
+  if (currText === prevText) return currHTML;
+
+  const tokens = wordDiff(prevText, currText);
+  let result = '';
+  let pos = 0;
+
+  // Advance past any non-text content at current pos, appending it to chunk.
+  // Non-text = HTML tags and entire <sup>…</sup> blocks (whose inner text was
+  // stripped from the comparison strings and must not count toward remain).
+  function copyNonText(chunk) {
+    while (pos < currHTML.length && currHTML[pos] === '<') {
+      const supM = currHTML.slice(pos).match(/^<sup[\s\S]*?<\/sup>/i);
+      if (supM) {
+        chunk += supM[0];
+        pos += supM[0].length;
+      } else {
+        const end = currHTML.indexOf('>', pos) + 1;
+        chunk += currHTML.slice(pos, end);
+        pos = end;
+      }
+    }
+    return chunk;
+  }
+
+  for (const tok of tokens) {
+    if (tok.t === '-') {
+      const esc = tok.v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      result += `<span class="word-rem">${esc}</span>`;
+      continue;
+    }
+    let remain = tok.v.length;
+    let chunk = '';
+    while (remain > 0 && pos < currHTML.length) {
+      chunk = copyNonText(chunk);
+      if (remain > 0 && pos < currHTML.length) {
+        chunk += currHTML[pos++];
+        remain--;
+      }
+    }
+    result += tok.t === '+' ? `<span class="word-add">${chunk}</span>` : chunk;
+  }
+
+  // Flush any trailing non-text (citations at end of section, etc.)
+  let tail = '';
+  tail = copyNonText(tail);
+  return result + tail + currHTML.slice(pos);
+}
+
+function wordDiff(a, b) {
+  const tokA = (a || '').match(/\S+|\s+/g) || [];
+  const tokB = (b || '').match(/\S+|\s+/g) || [];
+  const m = tokA.length, n = tokB.length;
+  const dp = new Uint32Array((m + 1) * (n + 1));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i * (n + 1) + j] = tokA[i] === tokB[j]
+        ? dp[(i + 1) * (n + 1) + (j + 1)] + 1
+        : Math.max(dp[(i + 1) * (n + 1) + j], dp[i * (n + 1) + (j + 1)]);
+    }
+  }
+  let i = 0, j = 0;
+  const out = [];
+  while (i < m || j < n) {
+    if (i < m && j < n && tokA[i] === tokB[j]) {
+      out.push({ t: '=', v: tokA[i] }); i++; j++;
+    } else if (j < n && (i >= m || dp[i * (n + 1) + (j + 1)] >= dp[(i + 1) * (n + 1) + j])) {
+      out.push({ t: '+', v: tokB[j] }); j++;
+    } else {
+      out.push({ t: '-', v: tokA[i] }); i++;
+    }
+  }
+  return out;
+}
+
 
 function renderTimeline() {
   let start = new Date('2013-04-15T04:00:00Z'); // midnight EDT (UTC-4)
@@ -375,8 +517,9 @@ function renderTimeline() {
     let t = new Date(data.revisions[i].timestamp);
     let pct = Math.max(0, Math.min(100, toPct(t)));
     let dot = createDiv('');
-    let subplot = data.revisions[i].subplot;
-    let dotClass = 'timeline-dot' + (subplot ? ' subplot-' + subplot : '') + (i === edit ? ' current' : '');
+    const autoTag = data.revisions[i].subplot;
+    const hidden = activeFilter && autoTag !== activeFilter;
+    let dotClass = 'timeline-dot' + (i === edit ? ' current' : '') + (hidden ? ' dot-hidden' : '');
     dot.class(dotClass);
     dot.style('left', pct + '%');
     dot.parent(container);

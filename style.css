@@ -59,6 +59,38 @@ body {
   white-space: nowrap;
 }
 
+#filter-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 12px;
+  color: #555;
+  flex-wrap: wrap;
+}
+
+#filter-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 2px 9px;
+  border: 1px solid #c8d3e0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: #555;
+  white-space: nowrap;
+}
+.filter-btn:hover { background: #f0f4f8; }
+.filter-btn.active {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+
 #jump-input {
   width: 7em;
   font-size: 12px;
@@ -211,12 +243,8 @@ p{
   cursor: pointer;
 }
 
-.timeline-dot.subplot-saudi_suspect        { background: rgba(231, 76,  60,  0.6); }
-.timeline-dot.subplot-suspect_identification { background: rgba(52,  152, 219, 0.6); }
-.timeline-dot.subplot-jeff_bauman          { background: rgba(46,  204, 113, 0.6); }
-.timeline-dot.subplot-sunil_tripathi       { background: rgba(230, 126, 34,  0.6); }
-.timeline-dot.subplot-radicalization       { background: rgba(155, 89,  182, 0.6); }
-.timeline-dot.subplot-conflicting_reports  { background: rgba(241, 196, 15,  0.6); }
+
+.timeline-dot.dot-hidden { display: none; }
 
 .timeline-dot.current {
   background: #b39ddb;
@@ -266,6 +294,19 @@ p{
 
 .references-list a:hover {
   text-decoration: underline;
+}
+
+.word-add {
+  background: #c6efce;
+  color: #276221;
+  border-radius: 2px;
+}
+
+.word-rem {
+  background: #ffc7ce;
+  color: #9c0006;
+  border-radius: 2px;
+  text-decoration: line-through;
 }
 
 .cite-ref {
