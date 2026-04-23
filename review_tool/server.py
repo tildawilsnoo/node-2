@@ -18,6 +18,18 @@ with open(DATA_FILE) as f:
 revisions = doc['revisions']
 rev_index = {r['revid']: i for i, r in enumerate(revisions)}  # revid → list index
 
+SECTION_ORDER = [
+    'Investigation', 'Suspects', 'Arrest', 'Arrests',
+    'Other arrests', 'Other arrests and detentions', 'Conflicting reports',
+]
+
+# Forward pass: build a running section snapshot for every revision
+_state = {}
+for _rev in revisions:
+    for _name, _val in (_rev.get('section_text_after') or {}).items():
+        _state[_name] = _val
+    _rev['_snapshot'] = dict(_state)
+
 
 def save():
     with open(DATA_FILE, 'w') as f:
@@ -41,26 +53,35 @@ def compute_diff(before, after):
     return out
 
 
-def find_prev_section_text(idx, sec):
-    """Scan backwards from idx to find the most recent revision that has text for sec."""
-    for j in range(idx - 1, -1, -1):
-        txt = ((revisions[j].get('section_text_after') or {}).get(sec) or {}).get('plaintext')
-        if txt is not None:
-            return txt
-    return None
-
-
 def get_payload(idx):
-    rev = revisions[idx]
+    rev       = revisions[idx]
+    snapshot  = rev.get('_snapshot', {})
+    prev_snap = revisions[idx - 1].get('_snapshot', {}) if idx > 0 else {}
+    changed   = set(rev.get('changed_sections') or [])
 
+    # Full ordered snapshot for display
+    seen = set()
+    snapshot_sections = []
+    for name in SECTION_ORDER:
+        if name in snapshot:
+            txt = ((snapshot[name] or {}).get('plaintext') or '').strip()
+            if txt:
+                snapshot_sections.append({'name': name, 'text': txt, 'changed': name in changed})
+                seen.add(name)
+    for name, val in snapshot.items():
+        if name not in seen:
+            txt = ((val or {}).get('plaintext') or '').strip()
+            if txt:
+                snapshot_sections.append({'name': name, 'text': txt, 'changed': name in changed})
+
+    # Diffs for changed sections only
     sections = {}
-    for sec in (rev.get('changed_sections') or []):
-        after_txt  = ((rev.get('section_text_after') or {}).get(sec) or {}).get('plaintext', '')
-        before_txt = find_prev_section_text(idx, sec)
+    for sec in changed:
+        after_txt  = ((snapshot.get(sec) or {}).get('plaintext') or '')
+        before_txt = ((prev_snap.get(sec) or {}).get('plaintext') or None)
         sections[sec] = {
-            'diff':       compute_diff(before_txt or '', after_txt),
-            'has_prev':   before_txt is not None,
-            'after_text': after_txt,
+            'diff':     compute_diff(before_txt or '', after_txt),
+            'has_prev': before_txt is not None,
         }
 
     tagged = sum(1 for r in revisions if r.get('manual_subplot') is not None)
@@ -86,8 +107,9 @@ def get_payload(idx):
         'auto_subplot':     rev.get('auto_subplot'),
         'manual_subplot':   rev.get('manual_subplot'),
         'notable':          rev.get('notable', False),
-        'sections':         sections,
-        'all_subplots':     seen_subplots,
+        'sections':             sections,
+        'snapshot_sections':    snapshot_sections,
+        'all_subplots':         seen_subplots,
     }
 
 

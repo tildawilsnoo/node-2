@@ -1,6 +1,5 @@
 let data;
 let citationsRaw;
-let activeFilter = null;
 let citationMap = {};
 let refNameToId = {};
 let urlToId = {};
@@ -39,6 +38,9 @@ function setup() {
     rev.sectionSnapshot = Object.assign({}, sectionState);
   }
 
+  // Keep only INCLUDE-marked revisions
+  data.revisions = data.revisions.filter(rev => rev.manual_subplot === 'INCLUDE');
+
   // Filter out revisions where the visible plaintext didn't change
   let prevPlaintext = null;
   data.revisions = data.revisions.filter(rev => {
@@ -49,40 +51,6 @@ function setup() {
     prevPlaintext = plaintext;
     return true;
   });
-
-  // Populate filter buttons from unique subplot (auto-generated) values
-  const tags = [...new Set(
-    data.revisions.map(r => r.subplot).filter(Boolean)
-  )].sort();
-  const filterContainer = document.getElementById('filter-tags');
-  if (tags.length) {
-    const allBtn = document.createElement('button');
-    allBtn.textContent = 'All';
-    allBtn.className = 'filter-btn active';
-    allBtn.dataset.tag = '';
-    filterContainer.appendChild(allBtn);
-    for (const tag of tags) {
-      const btn = document.createElement('button');
-      btn.textContent = tag;
-      btn.className = 'filter-btn';
-      btn.dataset.tag = tag;
-      filterContainer.appendChild(btn);
-    }
-    filterContainer.addEventListener('click', e => {
-      const btn = e.target.closest('.filter-btn');
-      if (!btn) return;
-      activeFilter = btn.dataset.tag || null;
-      filterContainer.querySelectorAll('.filter-btn').forEach(b =>
-        b.classList.toggle('active', b === btn)
-      );
-      // If current edit doesn't match new filter, jump to first match
-      if (activeFilter) {
-        const match = data.revisions.findIndex(r => r.subplot === activeFilter);
-        if (match !== -1) edit = match;
-      }
-      showEdit();
-    });
-  }
 
   showEdit();
 
@@ -227,25 +195,13 @@ function renderReferences(citationIds) {
 }
 
 function prev() {
-  if (activeFilter) {
-    for (let i = edit - 1; i >= 0; i--) {
-      if (data.revisions[i].subplot === activeFilter) { edit = i; showEdit(); return; }
-    }
-  } else {
-    edit--;
-    showEdit();
-  }
+  edit--;
+  showEdit();
 }
 
 function next() {
-  if (activeFilter) {
-    for (let i = edit + 1; i < data.revisions.length; i++) {
-      if (data.revisions[i].subplot === activeFilter) { edit = i; showEdit(); return; }
-    }
-  } else {
-    edit++;
-    showEdit();
-  }
+  edit++;
+  showEdit();
 }
 
 function formatDateTime(timestamp) {
@@ -448,9 +404,19 @@ function wordDiff(a, b) {
 }
 
 
+function edtDayStart(t) {
+  // Returns midnight EDT (UTC-4) of the day containing t
+  let edtMs = t.getTime() - 4 * 3600 * 1000;
+  let d = new Date(edtMs);
+  d.setUTCHours(0, 0, 0, 0);
+  return new Date(d.getTime() + 4 * 3600 * 1000);
+}
+
 function renderTimeline() {
-  let start = new Date('2013-04-15T04:00:00Z'); // midnight EDT (UTC-4)
-  let end   = new Date('2013-05-16T04:00:00Z'); // midnight EDT — gives May 15 a full day
+  let firstTime = new Date(data.revisions[0].timestamp);
+  let lastTime  = new Date(data.revisions[data.revisions.length - 1].timestamp);
+  let start = edtDayStart(firstTime);
+  let end   = new Date(edtDayStart(lastTime).getTime() + 86400000); // day after last
 
   function toPct(t) {
     return (t - start) / (end - start) * 100;
@@ -517,10 +483,7 @@ function renderTimeline() {
     let t = new Date(data.revisions[i].timestamp);
     let pct = Math.max(0, Math.min(100, toPct(t)));
     let dot = createDiv('');
-    const autoTag = data.revisions[i].subplot;
-    const hidden = activeFilter && autoTag !== activeFilter;
-    let dotClass = 'timeline-dot' + (i === edit ? ' current' : '') + (hidden ? ' dot-hidden' : '');
-    dot.class(dotClass);
+    dot.class('timeline-dot' + (i === edit ? ' current' : ''));
     dot.style('left', pct + '%');
     dot.parent(container);
 

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suspect Reviewer</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f2f3f5;
+  color: #111;
+  min-height: 100vh;
+}
+
+/* ── top bar ──────────────────────────────────────────── */
+#topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.progress-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+.progress-track { flex: 1; height: 5px; background: #e0e0e0; border-radius: 3px; overflow: hidden; min-width: 80px; }
+.progress-fill  { height: 100%; background: #6366f1; border-radius: 3px; transition: width .25s; }
+#lbl-pos      { font-size: 13px; color: #555; white-space: nowrap; }
+#lbl-reviewed { font-size: 13px; color: #16a34a; font-weight: 600; white-space: nowrap; }
+
+#jump-form { display: flex; gap: 5px; }
+#jump-input { width: 72px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+.btn-xs { padding: 4px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; white-space: nowrap; }
+.btn-xs:hover { background: #f5f5f5; }
+
+/* ── main content ─────────────────────────────────────── */
+#main { max-width: 880px; margin: 18px auto; padding: 0 16px; }
+
+.card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+
+#meta-inner { padding: 14px 16px; }
+.meta-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+#meta-ts   { font-size: 12px; color: #999; }
+#meta-user { font-size: 15px; font-weight: 700; }
+#meta-comment { margin-top: 6px; font-size: 13px; color: #444; font-style: italic; line-height: 1.5; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.pill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 12px; font-size: 11.5px; color: #555; background: #f0f0f0; }
+.pill.auto-sub { background: #fef9c3; color: #854d0e; }
+.pill.level-0  { background: #f3f4f6; color: #6b7280; font-weight: 700; }
+.pill.level-1  { background: #dbeafe; color: #1e3a8a; font-weight: 700; }
+.pill.level-2  { background: #ede9fe; color: #4c1d95; font-weight: 700; }
+.pill.level-3  { background: #ccfbf1; color: #065f46; font-weight: 700; }
+.pill.revid    { margin-left: auto; font-family: monospace; font-size: 11px; }
+
+/* ── diff ─────────────────────────────────────────────── */
+.sec-label { padding: 7px 14px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #888; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+.sec-label-changed { background: #fef9c3; color: #854d0e; border-bottom-color: #fde68a; }
+.no-parent { padding: 9px 14px; font-size: 12px; color: #aaa; background: #fafafa; }
+.no-change { padding: 12px 14px; font-size: 13px; color: #999; }
+
+.dl   { display: flex; font-family: 'Menlo', 'Consolas', 'SF Mono', monospace; font-size: 12.5px; line-height: 1.55; }
+.dl-g { width: 22px; flex-shrink: 0; text-align: center; font-size: 11px; padding-top: 1px; user-select: none; }
+.dl-t { flex: 1; padding: 1px 14px 1px 3px; white-space: pre-wrap; word-break: break-word; }
+
+.dl-add { background: #f0fdf4; }
+.dl-add .dl-g { color: #16a34a; background: #bbf7d0; }
+.dl-add .dl-t { color: #14532d; }
+.dl-rem { background: #fff5f5; }
+.dl-rem .dl-g { color: #dc2626; background: #fecaca; }
+.dl-rem .dl-t { color: #7f1d1d; }
+.dl-eq .dl-g  { color: #d1d5db; }
+.dl-eq .dl-t  { color: #9ca3af; }
+
+.wd-rem { background: #fca5a5; border-radius: 2px; padding: 0 1px; }
+.wd-add { background: #6ee7b7; border-radius: 2px; padding: 0 1px; }
+
+.full-text-body { padding: 14px 16px; font-size: 13px; line-height: 1.7; color: #374151; background: #fafafa; border-bottom: 1px solid #e8ecf0; white-space: pre-wrap; word-break: break-word; }
+.dl-collapse { padding: 4px 14px; font-size: 11.5px; color: #94a3b8; background: #f8fafc; cursor: pointer; border-top: 1px solid #f0f4f8; border-bottom: 1px solid #f0f4f8; }
+.dl-collapse:hover { background: #f0f4f8; color: #64748b; }
+
+/* ── bottom panel ─────────────────────────────────────── */
+#sub-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #fff; border-top: 2px solid #e5e7eb;
+  padding: 10px 16px 12px; z-index: 100;
+}
+.panel-inner { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+
+.saudi-panel { display: flex; flex-direction: column; gap: 7px; }
+
+.panel-header { display: flex; align-items: center; gap: 12px; }
+.section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #888; }
+.kbd-hint { font-size: 10.5px; color: #bbb; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.level-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.level-btn {
+  padding: 5px 16px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+  border: 2px solid transparent; cursor: pointer; transition: none;
+}
+.level-btn:hover { opacity: .85; }
+
+.level-btn.l0 { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+.level-btn.l0.active { background: #e5e7eb; border-color: #9ca3af; color: #374151; }
+
+.level-btn.l1 { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+.level-btn.l1.active { background: #dbeafe; border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,.15); }
+
+.level-btn.l2 { background: #f5f3ff; color: #4c1d95; border-color: #ddd6fe; }
+.level-btn.l2.active { background: #ede9fe; border-color: #4c1d95; box-shadow: 0 0 0 2px rgba(76,29,149,.15); }
+
+.level-btn.l3 { background: #f0fdfa; color: #065f46; border-color: #99f6e4; }
+.level-btn.l3.active { background: #ccfbf1; border-color: #065f46; box-shadow: 0 0 0 2px rgba(6,95,70,.15); }
+
+.tag-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+
+.tb {
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  border: 2px solid transparent; cursor: pointer;
+  background: #f1f5f9; color: #334155;
+}
+.tb:hover   { opacity: .8; }
+.tb.active  { background: #e2e8f0; border-color: #475569; box-shadow: 0 0 0 2px rgba(71,85,105,.15); }
+.tb.prev-used { background: #fef9c3; color: #854d0e; border-color: #fbbf24; }
+
+.custom-form  { display: flex; gap: 5px; }
+.custom-input { flex: 1; min-width: 0; max-width: 200px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px; color: #111; }
+.custom-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px #e0e7ff; }
+.btn-assign { padding: 4px 12px; border: 1px solid #6366f1; border-radius: 5px; background: #f0f9ff; font-size: 12px; cursor: pointer; color: #4338ca; white-space: nowrap; }
+.btn-assign:hover { background: #e0e7ff; }
+
+.nav-row { display: flex; gap: 8px; align-items: center; }
+.nav-btn { padding: 5px 20px; border: 1px solid #d1d5db; border-radius: 5px; background: #fff; font-size: 13px; cursor: pointer; color: #374151; }
+.nav-btn:hover { background: #f9fafb; }
+.btn-save   { background: #4f46e5; border-color: #4f46e5; color: #fff; font-weight: 600; }
+.btn-save:hover { background: #4338ca; }
+.btn-remove { color: #dc2626; border-color: #fca5a5; margin-left: auto; }
+.btn-remove:hover { background: #fee2e2; border-color: #dc2626; }
+
+kbd { display: inline-block; padding: 0 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 10px; color: #9ca3af; background: #f9fafb; margin-left: 4px; vertical-align: middle; font-family: inherit; }
+
+#loading   { text-align: center; padding: 70px 0; color: #aaa; font-size: 15px; }
+#error-msg { display:none; color:#dc2626; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:20px; margin-top:20px; font-size:14px; line-height:1.6; }
+
+.level-label { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+.level-label.l1 { background: #dbeafe; color: #1e3a8a; }
+.level-label.l2 { background: #ede9fe; color: #4c1d95; }
+.level-label.l3 { background: #ccfbf1; color: #065f46; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="progress-wrap">
+    <span id="lbl-pos">—</span>
+    <div class="progress-track"><div class="progress-fill" id="prog" style="width:0"></div></div>
+    <span id="lbl-reviewed">0 reviewed</span>
+  </div>
+  <form id="jump-form">
+    <input id="jump-input" type="number" min="1" placeholder="edit #">
+    <button type="submit" class="btn-xs">Go</button>
+  </form>
+  <button class="btn-xs" id="btn-unreviewed">→ first unreviewed</button>
+</div>
+
+<div id="main">
+  <div id="loading">Loading…</div>
+  <div id="error-msg"></div>
+  <div id="content" style="display:none">
+    <div class="card"><div id="meta-inner">
+      <div class="meta-top">
+        <span id="meta-ts"></span>
+        <span id="meta-user"></span>
+      </div>
+      <div id="meta-comment"></div>
+      <div class="pills" id="pills"></div>
+    </div></div>
+    <div class="card" id="diff-card"></div>
+  </div>
+</div>
+
+<div id="sub-panel">
+  <div class="panel-inner">
+
+    <div class="saudi-panel">
+      <div class="panel-header">
+        <span class="section-title">Saudi Suspect</span>
+        <span class="kbd-hint">[0] none · [1] suspicion · [2] mentioned · [3] official suspect</span>
+      </div>
+      <div class="level-row">
+        <button class="level-btn l0" id="btn-level-0">0 &nbsp;None</button>
+        <button class="level-btn l1" id="btn-level-1">1 &nbsp;Suspicion</button>
+        <button class="level-btn l2" id="btn-level-2">2 &nbsp;Mentioned</button>
+        <button class="level-btn l3" id="btn-level-3">3 &nbsp;Official Suspect</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="tag-row" id="saudi-tags"></div>
+        <form class="custom-form" id="saudi-form">
+          <input class="custom-input" id="saudi-input" type="text" placeholder="type name…" autocomplete="off" spellcheck="false">
+          <button type="submit" class="btn-assign">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn" id="btn-back"><kbd>←</kbd> Back</button>
+      <button class="nav-btn btn-save" id="btn-save">Save & Next <kbd>↵</kbd></button>
+      <button class="nav-btn btn-remove" id="btn-remove">✕ Remove from INCLUDE</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let idx  = parseInt(localStorage.getItem('suspectReviewIdx') || '0');
+let rev  = null;
+let busy = false;
+
+// level: null = unreviewed, 0 = none, 1/2/3 = suspicion/mentioned/official
+// tag: null | string
+let pending     = { level: null, tag: null };
+let prevPending = { level: null, tag: null };
+
+const LEVEL_LABELS = { 1: 'Suspicion', 2: 'Mentioned', 3: 'Official Suspect' };
+
+// ── API ──────────────────────────────────────────────────
+async function api(path, body) {
+  const opts = body
+    ? { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }
+    : {};
+  const r   = await fetch(path, opts);
+  const txt = await r.text();
+  try { return JSON.parse(txt); }
+  catch (e) { throw new Error(`Server replied (HTTP ${r.status}):\n${txt.slice(0, 400)}`); }
+}
+
+// ── Navigation ───────────────────────────────────────────
+function saveIdx(i) { idx = i; localStorage.setItem('suspectReviewIdx', i); }
+
+async function load(i) {
+  if (busy) return;
+  busy = true;
+  document.getElementById('error-msg').style.display = 'none';
+  document.getElementById('loading').style.display   = '';
+  document.getElementById('content').style.display   = 'none';
+  try {
+    rev = await api(`/api/revision?idx=${i}`);
+    saveIdx(i);
+    const lvl = rev.saudi_suspect_level;
+    pending = {
+      level: (lvl === undefined || lvl === null) ? null : lvl,
+      tag:   rev.saudi_suspect_tag ?? null,
+    };
+    render(rev);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = '';
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    const el = document.getElementById('error-msg');
+    el.innerHTML = `<strong>Could not load data.</strong><br><br>Error: <code>${err.message}</code><br><br>` +
+      `Make sure the server is running:<br><code>python3 review_tool_suspect/server.py</code><br><br>` +
+      `Then open <a href="http://localhost:8766">http://localhost:8766</a> in your browser.`;
+    el.style.display = '';
+  } finally {
+    busy = false;
+  }
+}
+
+async function saveAndNext() {
+  if (!rev) return;
+  prevPending = { level: pending.level, tag: pending.tag };
+  await api('/api/assign', {
+    revid:               rev.revid,
+    saudi_suspect_level: pending.level,
+    saudi_suspect_tag:   pending.tag,
+  });
+  const next = idx + 1;
+  if (next < rev.total) load(next); else allDone();
+}
+
+async function back() { if (idx > 0) load(idx - 1); }
+function allDone() { document.getElementById('main').innerHTML = '<div id="loading">All done!</div>'; }
+
+function setLevel(n) {
+  pending.level = n;
+  refreshPanel();
+}
+
+function setTag(name) {
+  pending.tag = (pending.tag === name) ? null : name;
+  rev.all_saudi_tags = rev.all_saudi_tags || [];
+  if (!rev.all_saudi_tags.includes(name)) rev.all_saudi_tags.push(name);
+  refreshPanel();
+}
+
+// ── Render ───────────────────────────────────────────────
+function render(r) {
+  const pct = r.total > 0 ? ((r.idx + 1) / r.total * 100).toFixed(1) : 0;
+  document.getElementById('lbl-pos').textContent      = `${r.idx + 1} / ${r.total}`;
+  document.getElementById('prog').style.width         = pct + '%';
+  document.getElementById('lbl-reviewed').textContent = `${r.reviewed} reviewed`;
+
+  const ts = new Date(r.timestamp);
+  document.getElementById('meta-ts').textContent =
+    ts.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) + '  ' +
+    ts.toISOString().slice(11,16) + ' UTC';
+  document.getElementById('meta-user').textContent    = r.user;
+  document.getElementById('meta-comment').textContent = r.comment || '(no comment)';
+
+  const pills = document.getElementById('pills');
+  pills.innerHTML = '';
+  const add = (text, cls) => {
+    const el = document.createElement('span');
+    el.className = 'pill' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+    pills.appendChild(el);
+  };
+  add('§ ' + (r.changed_sections || []).join(', '));
+  add((r.citation_ids || []).length + ' citation' + (r.citation_ids?.length !== 1 ? 's' : ''));
+  if (r.subplot) add('auto: ' + r.subplot, 'auto-sub');
+
+  const lvl = r.saudi_suspect_level;
+  if (lvl === 0)      add('saudi: none', 'level-0');
+  else if (lvl === 1) add('saudi suspicion' + (r.saudi_suspect_tag ? ': ' + r.saudi_suspect_tag : ''), 'level-1');
+  else if (lvl === 2) add('saudi mentioned' + (r.saudi_suspect_tag ? ': ' + r.saudi_suspect_tag : ''), 'level-2');
+  else if (lvl === 3) add('saudi official' + (r.saudi_suspect_tag ? ': ' + r.saudi_suspect_tag : ''), 'level-3');
+
+  add('rev ' + r.revid, 'revid');
+
+  renderDiff(r);
+  refreshPanel();
+}
+
+function refreshPanel() {
+  if (!rev) return;
+
+  [0, 1, 2, 3].forEach(n => {
+    document.getElementById(`btn-level-${n}`).classList.toggle('active', pending.level === n);
+  });
+
+  const tagsEl = document.getElementById('saudi-tags');
+  tagsEl.innerHTML = '';
+  (rev.all_saudi_tags || []).forEach(name => {
+    const btn     = document.createElement('button');
+    const isActive = pending.tag === name;
+    const wasPrev  = prevPending.tag === name && !isActive;
+    btn.className  = 'tb' + (isActive ? ' active' : '') + (wasPrev ? ' prev-used' : '');
+    btn.textContent = name;
+    btn.addEventListener('click', () => setTag(name));
+    tagsEl.appendChild(btn);
+  });
+}
+
+// ── Diff rendering ───────────────────────────────────────
+function renderDiff(r) {
+  const card = document.getElementById('diff-card');
+  card.innerHTML = '';
+  const snaps = r.snapshot_sections || [];
+  if (!snaps.length) {
+    card.innerHTML = '<div class="no-change">(no section text available)</div>';
+    return;
+  }
+  for (const sec of snaps) {
+    const lbl = document.createElement('div');
+    lbl.className = 'sec-label' + (sec.changed ? ' sec-label-changed' : '');
+    lbl.textContent = sec.name + (sec.changed ? ' ✎' : '');
+    card.appendChild(lbl);
+
+    const body = document.createElement('div');
+    body.className = 'full-text-body';
+    body.textContent = sec.text;
+    card.appendChild(body);
+
+    if (sec.changed) {
+      const data = (r.sections || {})[sec.name];
+      const diff = data?.diff || [];
+      if (diff.length) {
+        const wrap = document.createElement('div');
+        if (data && !data.has_prev) {
+          const note = document.createElement('div');
+          note.className = 'no-parent';
+          note.textContent = '(first edit to this section in the dataset)';
+          wrap.appendChild(note);
+        }
+        renderDiffItems(collapseEqual(diff), wrap);
+        card.appendChild(wrap);
+      }
+    }
+  }
+}
+
+function wordDiff(a, b) {
+  const tok = s => s.match(/\S+|\s+/g) || [];
+  const A = tok(a), B = tok(b);
+  const m = A.length, n = B.length;
+  const dp = Array.from({length: m + 1}, () => new Uint16Array(n + 1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = A[i-1] === B[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && A[i-1] === B[j-1])                 { ops.unshift({t:'=', v:A[i-1]}); i--; j--; }
+    else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({t:'+', v:B[j-1]}); j--; }
+    else                                                       { ops.unshift({t:'-', v:A[i-1]}); i--; }
+  }
+  return ops;
+}
+
+function makeWordDiffLines(oldText, newText) {
+  const ops = wordDiff(oldText, newText);
+  const remRow = makeBlankDiffLine('dl-rem', '−');
+  const addRow = makeBlankDiffLine('dl-add', '+');
+  for (const op of ops) {
+    if (op.t === '=' || op.t === '-') {
+      const s = document.createElement('span');
+      s.textContent = op.v;
+      if (op.t === '-') s.className = 'wd-rem'; else s.style.opacity = '.45';
+      remRow.text.appendChild(s);
+    }
+    if (op.t === '=' || op.t === '+') {
+      const s = document.createElement('span');
+      s.textContent = op.v;
+      if (op.t === '+') s.className = 'wd-add'; else s.style.opacity = '.45';
+      addRow.text.appendChild(s);
+    }
+  }
+  return [remRow.el, addRow.el];
+}
+
+function makeBlankDiffLine(cls, glyph) {
+  const el = document.createElement('div');
+  el.className = 'dl ' + cls;
+  const g = document.createElement('div'); g.className = 'dl-g'; g.textContent = glyph;
+  const t = document.createElement('div'); t.className = 'dl-t';
+  el.appendChild(g); el.appendChild(t);
+  return {el, text: t};
+}
+
+function renderDiffItems(items, container) {
+  let i = 0;
+  while (i < items.length) {
+    const item = items[i];
+    if (item.collapsed) { container.appendChild(makeCollapse(item)); i++; continue; }
+    if (item.t === '-') {
+      const rems = [], adds = [];
+      while (i < items.length && !items[i].collapsed && items[i].t === '-') rems.push(items[i++]);
+      while (i < items.length && !items[i].collapsed && items[i].t === '+') adds.push(items[i++]);
+      if (adds.length > 0) {
+        const pairs = Math.min(rems.length, adds.length);
+        for (let k = 0; k < pairs; k++)
+          makeWordDiffLines(rems[k].v, adds[k].v).forEach(l => container.appendChild(l));
+        for (let k = pairs; k < rems.length; k++) container.appendChild(makeLine(rems[k]));
+        for (let k = pairs; k < adds.length; k++) container.appendChild(makeLine(adds[k]));
+      } else {
+        rems.forEach(r => container.appendChild(makeLine(r)));
+      }
+      continue;
+    }
+    container.appendChild(makeLine(item));
+    i++;
+  }
+}
+
+function makeLine(d) {
+  const el = document.createElement('div');
+  el.className = 'dl ' + (d.t === '+' ? 'dl-add' : d.t === '-' ? 'dl-rem' : 'dl-eq');
+  const g = document.createElement('div'); g.className = 'dl-g';
+  g.textContent = d.t === '+' ? '+' : d.t === '-' ? '−' : '';
+  const t = document.createElement('div'); t.className = 'dl-t';
+  t.textContent = d.v;
+  el.appendChild(g); el.appendChild(t);
+  return el;
+}
+
+function makeCollapse(item) {
+  const el = document.createElement('div');
+  el.className = 'dl-collapse';
+  el.textContent = `▸ ${item.count} unchanged line${item.count !== 1 ? 's' : ''} — click to expand`;
+  el.addEventListener('click', () => {
+    item.lines.map(makeLine).forEach(l => el.parentNode.insertBefore(l, el));
+    el.remove();
+  });
+  return el;
+}
+
+function collapseEqual(diff, ctx = 3) {
+  const changed = new Set();
+  diff.forEach((d, i) => { if (d.t !== '=') changed.add(i); });
+  if (!changed.size) {
+    return diff.length > 6 ? [{ collapsed: true, count: diff.length, lines: diff }] : diff;
+  }
+  const vis = new Set();
+  changed.forEach(i => {
+    for (let j = Math.max(0, i - ctx); j <= Math.min(diff.length - 1, i + ctx); j++) vis.add(j);
+  });
+  const out = [];
+  let i = 0;
+  while (i < diff.length) {
+    if (vis.has(i)) { out.push(diff[i++]); continue; }
+    const start = i;
+    while (i < diff.length && !vis.has(i)) i++;
+    const lines = diff.slice(start, i);
+    if (lines.length <= 3) lines.forEach(l => out.push(l));
+    else out.push({ collapsed: true, count: lines.length, lines });
+  }
+  return out;
+}
+
+// ── Events ───────────────────────────────────────────────
+document.getElementById('jump-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseInt(document.getElementById('jump-input').value);
+  if (!isNaN(v) && v >= 1) { load(v - 1); document.getElementById('jump-input').value = ''; }
+});
+
+document.getElementById('btn-unreviewed').addEventListener('click', async () => {
+  const d = await api('/api/first_unreviewed');
+  if (d.idx >= (rev?.total ?? Infinity)) alert('All edits have been reviewed.');
+  else load(d.idx);
+});
+
+[0, 1, 2, 3].forEach(n => {
+  document.getElementById(`btn-level-${n}`).addEventListener('click', () => setLevel(n));
+});
+
+document.getElementById('saudi-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const val = document.getElementById('saudi-input').value.trim();
+  if (!val) return;
+  setTag(val);
+  document.getElementById('saudi-input').value = '';
+});
+
+document.getElementById('btn-save').addEventListener('click', saveAndNext);
+document.getElementById('btn-back').addEventListener('click', back);
+
+document.getElementById('btn-remove').addEventListener('click', async () => {
+  if (!rev) return;
+  if (!confirm('Remove this edit from INCLUDE? It will no longer appear in this tool.')) return;
+  const result = await api('/api/remove_include', { revid: rev.revid });
+  if (result.ok) {
+    if (result.new_total === 0) allDone();
+    else { saveIdx(result.new_idx); load(result.new_idx); }
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); saveAndNext(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+  if (e.key === '0') setLevel(0);
+  if (e.key === '1') setLevel(1);
+  if (e.key === '2') setLevel(2);
+  if (e.key === '3') setLevel(3);
+});
+
+// ── Keep body padding in sync with fixed panel height ────
+const panel = document.getElementById('sub-panel');
+new ResizeObserver(() => {
+  document.body.style.paddingBottom = panel.offsetHeight + 16 + 'px';
+}).observe(panel);
+
+// ── Init ─────────────────────────────────────────────────
+load(idx);
+</script>
+</body>
+</html>
