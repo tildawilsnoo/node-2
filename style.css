@@ -128,7 +128,6 @@ p{
 
 #timeline {
   position: relative;
-  height: 38px;
   margin: 28px 0 8px;
 }
 
@@ -221,12 +220,11 @@ p{
 
 .timeline-dot {
   position: absolute;
-  top: 9px;
   transform: translateX(-50%);
-  width: 9px;
-  height: 9px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: rgba(90, 130, 180, 0.45);
+  background: rgba(90, 130, 180, 0.5);
   cursor: pointer;
 }
 
@@ -234,9 +232,6 @@ p{
 
 .timeline-dot.current {
   background: #b39ddb;
-  width: 11px;
-  height: 11px;
-  top: 8px;
   z-index: 1;
 }
 

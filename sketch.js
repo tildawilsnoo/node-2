@@ -317,16 +317,30 @@ function extractCitationIds(wikitext) {
 function styleText() {
   selectAll('.section-body').forEach(el => {
     let content = el.html();
+    // Protect subheading spans before the newline-stripping pass
+    let subheadings = [];
+    content = content.replace(/<span class="section-subheading">[^<]*<\/span>/g, m => {
+      let token = `\x00SH${subheadings.length}\x00`;
+      subheadings.push(m);
+      return token;
+    });
     content = content.replace(/>\n+</g, '><').replace(/(\n\s*){2,}/g, '</p><p>').replace(/\n/g, '<br>');
+    // Restore subheadings as block elements between paragraphs
+    content = content.replace(/\x00SH(\d+)\x00/g, (_, i) => `</p>${subheadings[+i]}<p>`);
+    content = content.replace(/<p>\s*<\/p>/g, '');
     el.html(content);
   });
 }
 
 function applyWordHighlights(currHTML, prevHTML) {
-  // Strip <sup> blocks entirely (removes "[N]" citation text) then strip remaining tags.
-  // Both steps must match: the walker also skips <sup> blocks as non-text so the
+  // Strip <sup> blocks and subheading spans entirely, then strip remaining tags.
+  // Both steps must match: the walker also skips these blocks as non-text so the
   // character offsets stay aligned with the stripped comparison text.
-  const stripForDiff = s => s.replace(/<sup[\s\S]*?<\/sup>/gi, '').replace(/<[^>]+>/g, '');
+  const stripForDiff = s => s
+    .replace(/<sup[\s\S]*?<\/sup>/gi, '')
+    .replace(/<span class="section-subheading">[\s\S]*?<\/span>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n');
   const currText = stripForDiff(currHTML);
   const prevText = stripForDiff(prevHTML);
   if (currText === prevText) return currHTML;
@@ -345,9 +359,15 @@ function applyWordHighlights(currHTML, prevHTML) {
         chunk += supM[0];
         pos += supM[0].length;
       } else {
-        const end = currHTML.indexOf('>', pos) + 1;
-        chunk += currHTML.slice(pos, end);
-        pos = end;
+        const subhM = currHTML.slice(pos).match(/^<span class="section-subheading">[\s\S]*?<\/span>/);
+        if (subhM) {
+          chunk += subhM[0];
+          pos += subhM[0].length;
+        } else {
+          const end = currHTML.indexOf('>', pos) + 1;
+          chunk += currHTML.slice(pos, end);
+          pos = end;
+        }
       }
     }
     return chunk;
@@ -413,10 +433,10 @@ function edtDayStart(t) {
 }
 
 function renderTimeline() {
-  let firstTime = new Date(data.revisions[0].timestamp);
+  let bombTime  = new Date('2013-04-15T18:49:00Z');
   let lastTime  = new Date(data.revisions[data.revisions.length - 1].timestamp);
-  let start = edtDayStart(firstTime);
-  let end   = new Date(edtDayStart(lastTime).getTime() + 86400000); // day after last
+  let start = new Date(bombTime.getTime() - 3600 * 1000);
+  let end   = new Date(lastTime.getTime()  + 3600 * 1000);
 
   function toPct(t) {
     return (t - start) / (end - start) * 100;
@@ -425,69 +445,156 @@ function renderTimeline() {
   let container = select('#timeline');
   container.html('');
 
+  // ── Beeswarm layout ────────────────────────────────────
+  const R  = 3;   // dot radius px
+  const D  = R * 2;
+  const cw = container.elt.offsetWidth || 900;
+
+  let dotData = data.revisions.map((rev, i) => {
+    let pct    = toPct(new Date(rev.timestamp));          // true sub-pixel x, unclamped
+    let pctVis = Math.max(0, Math.min(100, pct));         // clamped only for rendering
+    return { i, pct: pctVis, xPx: pct / 100 * cw, y: 0 };
+  });
+
+  let placed = [];
+  for (let dot of dotData) {
+    let nearby = placed.filter(p => Math.abs(p.xPx - dot.xPx) < D);
+    let bestY = 0;
+    for (let level = 0; ; level++) {
+      let cy = -level * D;  // only go upward
+      if (nearby.every(p => {
+        let dx = dot.xPx - p.xPx, dy = cy - p.y;
+        return dx * dx + dy * dy >= D * D;
+      })) { bestY = cy; break; }
+    }
+    dot.y = bestY;
+    placed.push(dot);
+  }
+
+  // ── Dynamic sizing ─────────────────────────────────────
+  const TOP_PAD = 20;  // space above swarm for event labels
+  const BOT_PAD = 22;  // space below swarm for day labels
+  let maxUp   = dotData.reduce((m, d) => Math.max(m, -d.y + R), R);
+  let maxDown = dotData.reduce((m, d) => Math.max(m, d.y  + R), R);
+  let trackY  = maxUp + TOP_PAD;
+  let totalH  = trackY + maxDown + BOT_PAD;
+  container.style('height', totalH + 'px');
+
+  // ── Track ──────────────────────────────────────────────
   let track = createDiv('');
   track.class('timeline-track');
+  track.style('top', trackY + 'px');
   track.parent(container);
 
-  // one tick + label per day, April 15 – May 15
+  // ── Day ticks + labels ─────────────────────────────────
   let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let d = new Date(start);
-  let firstDay = true;
+  let d = edtDayStart(start);
+  if (d.getTime() < start.getTime()) d = new Date(d.getTime() + 86400000);
   while (d < end) {
     let pct = toPct(d);
-
-    if (!firstDay) {
-      let tick = createDiv('');
-      tick.class('timeline-tick');
-      tick.style('left', pct + '%');
-      tick.parent(container);
-    }
-    firstDay = false;
+    let tick = createDiv('');
+    tick.class('timeline-tick');
+    tick.style('left', pct + '%');
+    tick.style('top',  (trackY - 4) + 'px');
+    tick.style('height', '9px');
+    tick.parent(container);
 
     let dayNum = d.getUTCDate();
     let labelText = dayNum === 1 ? months[d.getUTCMonth()] : String(dayNum);
     let label = createDiv(labelText);
     label.class('timeline-day-label');
     label.style('left', pct + '%');
+    label.style('top',  (trackY + 7) + 'px');
     label.parent(container);
 
     d = new Date(d.getTime() + 86400000);
   }
 
-  // bomb marker — 2:49 PM EDT (UTC-4) on April 15
-  let bombTime = new Date('2013-04-15T18:49:00Z');
-  let bombMarker = createDiv('');
-  bombMarker.class('timeline-event up');
-  bombMarker.style('left', toPct(bombTime) + '%');
-  bombMarker.parent(container);
-  createDiv('bomb detonates').class('timeline-event-label').parent(bombMarker);
+  // ── Event markers ──────────────────────────────────────
+  function addMarker(time, label) {
+    let m = createDiv('');
+    m.class('timeline-event up');
+    m.style('left',   toPct(time) + '%');
+    m.style('top',    (TOP_PAD - 4) + 'px');
+    m.style('height', (trackY - TOP_PAD + 6) + 'px');
+    m.parent(container);
+    createDiv(label).class('timeline-event-label').parent(m);
+  }
 
-  // MIT shooting marker — 10:48 PM EDT (UTC-4) on April 18
-  let mitTime = new Date('2013-04-19T02:48:00Z');
-  let mitMarker = createDiv('');
-  mitMarker.class('timeline-event down');
-  mitMarker.style('left', toPct(mitTime) + '%');
-  mitMarker.parent(container);
-  createDiv('MIT shooting').class('timeline-event-label').parent(mitMarker);
+  addMarker(bombTime,                        'bomb detonates');
+  addMarker(new Date('2013-04-20T00:42:00Z'), 'Tsarnaev arrested');
 
-  // arrest marker — 8:42 PM EDT (UTC-4) on April 19
-  let arrestTime = new Date('2013-04-20T00:42:00Z');
-  let arrestMarker = createDiv('');
-  arrestMarker.class('timeline-event up');
-  arrestMarker.style('left', toPct(arrestTime) + '%');
-  arrestMarker.parent(container);
-  createDiv('Tsarnaev arrested').class('timeline-event-label').parent(arrestMarker);
+  // ── Below-track green labels (with vertical stacking for overlaps) ────
+  const PX_PER_CHAR = 5.5;  // rough char width at 10px font
+  const LABEL_H     = 13;   // label row height (text + gap)
+  let belowSlots = [];       // { xPx, rightPx, bottomY } for placed labels
 
-  // one dot per revision
-  for (let i = 0; i < data.revisions.length; i++) {
-    let t = new Date(data.revisions[i].timestamp);
-    let pct = Math.max(0, Math.min(100, toPct(t)));
-    let dot = createDiv('');
-    dot.class('timeline-dot' + (i === edit ? ' current' : ''));
-    dot.style('left', pct + '%');
+  function addLabelBelow(revid, text) {
+    let r = data.revisions.find(r => r.revid === revid);
+    if (!r) return;
+    let pct     = Math.max(0, Math.min(100, toPct(new Date(r.timestamp))));
+    let xPx     = pct / 100 * cw;
+    let rightPx = xPx + text.length * PX_PER_CHAR + 8;
+
+    // Find lowest non-overlapping vertical slot
+    let labelY = trackY + 22;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let s of belowSlots) {
+        if (xPx < s.rightPx && rightPx > s.xPx && labelY < s.bottomY) {
+          labelY = s.bottomY;
+          changed = true;
+        }
+      }
+    }
+    belowSlots.push({ xPx, rightPx, bottomY: labelY + LABEL_H });
+
+    // Short tick at track — never extends into label territory
+    let tick = createDiv('');
+    tick.class('timeline-event');
+    tick.style('left',       pct + '%');
+    tick.style('top',        (trackY + 2) + 'px');
+    tick.style('height',     '8px');
+    tick.style('background', '#3c763d');
+    tick.parent(container);
+
+    // Label floats at its stacked y, independent of tick height
+    let lbl = createDiv(text);
+    lbl.style('position',    'absolute');
+    lbl.style('left',        `calc(${pct}% + 4px)`);
+    lbl.style('top',         labelY + 'px');
+    lbl.style('font-size',   '10px');
+    lbl.style('color',       '#3c763d');
+    lbl.style('white-space', 'nowrap');
+    lbl.style('line-height', '1');
+    lbl.parent(container);
+
+    // Grow container if stacked labels exceed current height
+    let needed = labelY + LABEL_H + 4;
+    if (needed > totalH) {
+      totalH = needed;
+      container.style('height', totalH + 'px');
+    }
+  }
+
+  addLabelBelow(550550335, 'is there a suspect?');
+  addLabelBelow(550839346, 'suspect in custody -- incorrect');
+  addLabelBelow(550854877, 'FBI clarifies no arrest has been made');
+  addLabelBelow(551143482, 'Tsarnaev first mentioned');
+
+  // ── Dots ───────────────────────────────────────────────
+  for (let d of dotData) {
+    let isCurrent = d.i === edit;
+    let size = isCurrent ? D + 2 : D;
+    let dot  = createDiv('');
+    dot.class('timeline-dot' + (isCurrent ? ' current' : ''));
+    dot.style('left',   d.pct + '%');
+    dot.style('top',    (trackY + d.y - size / 2) + 'px');
+    dot.style('width',  size + 'px');
+    dot.style('height', size + 'px');
     dot.parent(container);
-
-    let idx = i;
+    let idx = d.i;
     dot.mousePressed(() => { edit = idx; showEdit(); });
   }
 }
