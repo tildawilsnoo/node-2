@@ -21,8 +21,8 @@ body {
 
 #page-subtitle {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 15px;
-  color: #000;
+  font-size: 14px;
+  color: #202122;
   margin: 4px 0 0;
 }
 
@@ -41,6 +41,29 @@ body {
   display: block;
   width: 30%;
   gap: 1em;
+}
+
+#nav-arrows {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+#prev-btn,
+#next-btn {
+  font-size: 14px;
+  padding: 2px 8px;
+  border: 1px solid #c0cfe0;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #333;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+#prev-btn:hover,
+#next-btn:hover {
+  background: #e0ecff;
 }
 
 #editor-block {
@@ -126,9 +149,30 @@ p{
   padding-top: 30px;
 }
 
+#timeline-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
+  margin: 20px 0 2px;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 4px;
+}
+
+#timeline-label {
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  font-size: 1.1em;
+  color: #000;
+}
+
+#timeline-range {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #555;
+}
+
 #timeline {
   position: relative;
-  margin: 28px 0 8px;
+  margin: 8px 5px 8px 0;
 }
 
 .timeline-track {
@@ -150,12 +194,32 @@ p{
   pointer-events: none;
 }
 
+.timeline-hour-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 5px;
+  background: #c8d8e8;
+  pointer-events: none;
+}
+
+.timeline-hour-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #aaa;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .timeline-day-label {
   position: absolute;
   top: 22px;
   transform: translateX(-50%);
-  font-size: 10px;
-  color: #888;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
   user-select: none;
   pointer-events: none;
 }

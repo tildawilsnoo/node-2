@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Wiki Animator</title>
+  <title>Wiki Edit Viewer</title>
 
   <link rel="stylesheet" type="text/css" href="style.css">
 
@@ -15,8 +15,8 @@
 <body>
   <script src="sketch.js"></script>
   <div id="page-header">
-    <h1 id="page-title">Boston Marathon Bombing Suspect Edit Timeline</h1>
-    <p id="page-subtitle">the internet's encyclopedia deciphering breaking news</p>
+    <h1 id="page-title">Wikipedia Edit Viewer</h1>
+    <p id="page-subtitle">This shows edits to sections of the Boston Marathon bombing wikipedia page over the first four days after the bombing happened. They were taken from a larger database of all the edits to the wikipedia page during this time. Each dot represents one edit. The green dots indicate events or moments when arguments were taking place about what can or can't be included in the internet's encycolpedia.</p>
   </div>
   <div id="timeline"></div>
   <div id="label">
@@ -25,13 +25,17 @@
       <div id="time"></div>
       <a id="wiki-link" target="_blank">view on wiki</a>
       <div id="live-duration"></div>
+      <div id="nav-arrows">
+        <button id="prev-btn" title="Previous edit (←)">&#8592;</button>
+        <button id="next-btn" title="Next edit (→)">&#8594;</button>
+      </div>
     </div>
     <div id="editor-block">
-      <div id="edit-label"><span class="field-label">Username:</span><div id="editor"></div></div>
-      <div id="comment-label"><span class="field-label">Comment:</span><div id="comment"></div></div>
+      <div id="edit-label"><span class="field-label">editor username:</span><div id="editor"></div></div>
+      <div id="comment-label"><span class="field-label">edit comment:</span><div id="comment"></div></div>
     </div>
     <div id="jump-block">
-      <label for="jump-input">Jump to rev:</label>
+      <label for="jump-input">jump to revision:</label>
       <input id="jump-input" type="text" placeholder="rev id" />
       <span id="jump-msg"></span>
     </div>

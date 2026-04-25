@@ -54,6 +54,9 @@ function setup() {
 
   showEdit();
 
+  select('#prev-btn').elt.addEventListener('click', () => { if (edit > 0) prev(); });
+  select('#next-btn').elt.addEventListener('click', () => { if (edit < data.revisions.length - 1) next(); });
+
   let jumpInput = select('#jump-input');
   let jumpMsg   = select('#jump-msg');
   jumpInput.elt.addEventListener('keydown', e => {
@@ -433,10 +436,8 @@ function edtDayStart(t) {
 }
 
 function renderTimeline() {
-  let bombTime  = new Date('2013-04-15T18:49:00Z');
-  let lastTime  = new Date(data.revisions[data.revisions.length - 1].timestamp);
-  let start = new Date(bombTime.getTime() - 3600 * 1000);
-  let end   = new Date(lastTime.getTime()  + 3600 * 1000);
+  let start    = new Date('2013-04-15T04:00:00Z'); // midnight EDT Apr 15
+  let end      = new Date('2013-04-21T04:00:00Z'); // midnight EDT Apr 21 = end of Apr 20
 
   function toPct(t) {
     return (t - start) / (end - start) * 100;
@@ -472,8 +473,8 @@ function renderTimeline() {
   }
 
   // ── Dynamic sizing ─────────────────────────────────────
-  const TOP_PAD = 20;  // space above swarm for event labels
-  const BOT_PAD = 22;  // space below swarm for day labels
+  const TOP_PAD = 12;  // space above swarm
+  const BOT_PAD = 130;  // space below swarm for day labels + below-track labels
   let maxUp   = dotData.reduce((m, d) => Math.max(m, -d.y + R), R);
   let maxDown = dotData.reduce((m, d) => Math.max(m, d.y  + R), R);
   let trackY  = maxUp + TOP_PAD;
@@ -500,88 +501,165 @@ function renderTimeline() {
     tick.parent(container);
 
     let dayNum = d.getUTCDate();
-    let labelText = dayNum === 1 ? months[d.getUTCMonth()] : String(dayNum);
+    let labelText = months[d.getUTCMonth()] + ' ' + dayNum;
     let label = createDiv(labelText);
     label.class('timeline-day-label');
     label.style('left', pct + '%');
     label.style('top',  (trackY + 7) + 'px');
+    if (pct === 0) label.style('transform', 'none');
     label.parent(container);
 
     d = new Date(d.getTime() + 86400000);
   }
 
-  // ── Event markers ──────────────────────────────────────
-  function addMarker(time, label) {
-    let m = createDiv('');
-    m.class('timeline-event up');
-    m.style('left',   toPct(time) + '%');
-    m.style('top',    (TOP_PAD - 4) + 'px');
-    m.style('height', (trackY - TOP_PAD + 6) + 'px');
-    m.parent(container);
-    createDiv(label).class('timeline-event-label').parent(m);
+  // Closing tick at the end boundary for symmetry
+  let endTick = createDiv('');
+  endTick.class('timeline-tick');
+  endTick.style('left', '100%');
+  endTick.style('top',  (trackY - 4) + 'px');
+  endTick.style('height', '9px');
+  endTick.parent(container);
+
+  // ── Shared layout constants for below-track markers ────
+  const LINE_START   = trackY + 3;
+  const BUBBLE_H     = 19;
+  const BOMB_LABEL_Y = trackY + 30;
+  const WH_LABEL_Y   = BOMB_LABEL_Y + BUBBLE_H + 4;
+  const SPEC_LABEL_Y = WH_LABEL_Y + BUBBLE_H + 4;
+
+  const bombColor    = '#5c8c78';
+
+  // Derive x positions from dotData so lines align exactly with beeswarm dots
+  const suspectDot = dotData.find(d => data.revisions[d.i].revid === 550562971);
+  const suspectPct = suspectDot ? suspectDot.pct : toPct(new Date('2013-04-16T00:19:23Z'));
+  const specDot    = dotData.find(d => data.revisions[d.i].revid === 550591039);
+  const specPct    = specDot    ? specDot.pct    : toPct(new Date('2013-04-16T04:32:58Z'));
+  const authDot    = dotData.find(d => data.revisions[d.i].revid === 550735317);
+  const authPct    = authDot    ? authDot.pct    : toPct(new Date('2013-04-17T01:25:42Z'));
+  const catchDot   = dotData.find(d => data.revisions[d.i].revid === 550839346);
+  const catchPct   = catchDot   ? catchDot.pct   : toPct(new Date('2013-04-17T17:14:35Z'));
+  const imageDot   = dotData.find(d => data.revisions[d.i].revid === 551040062);
+  const imagePct   = imageDot   ? imageDot.pct   : toPct(new Date('2013-04-18T21:45:58Z'));
+  const detailsDot    = dotData.find(d => data.revisions[d.i].revid === 551143482);
+  const detailsPct    = detailsDot    ? detailsDot.pct    : toPct(new Date('2013-04-19T15:11:00Z'));
+  const rel1Dot  = dotData.find(d => data.revisions[d.i].revid === 551175490);
+  const rel1Pct  = rel1Dot  ? rel1Dot.pct  : toPct(new Date('2013-04-19T19:17:49Z'));
+  const rel2Dot  = dotData.find(d => data.revisions[d.i].revid === 551216794);
+  const rel2Pct  = rel2Dot  ? rel2Dot.pct  : toPct(new Date('2013-04-20T01:09:20Z'));
+  const rel3Dot  = dotData.find(d => data.revisions[d.i].revid === 551233207);
+  const rel3Pct  = rel3Dot  ? rel3Dot.pct  : toPct(new Date('2013-04-20T04:08:33Z'));
+
+
+  // "Is there a suspect?" line rendered before hour labels so labels appear on top
+  let suspectLine = createDiv('');
+  suspectLine.style('position',    'absolute');
+  suspectLine.style('left',        suspectPct + '%');
+  suspectLine.style('top',         LINE_START + 'px');
+  suspectLine.style('height',      (WH_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  suspectLine.style('width',       '0');
+  suspectLine.style('border-left', '2px dotted ' + bombColor);
+  suspectLine.style('transform',   'translateX(-50%)');
+  suspectLine.style('pointer-events', 'none');
+  suspectLine.parent(container);
+
+  // "What counts as speculation?" line
+  let specLine = createDiv('');
+  specLine.style('position',    'absolute');
+  specLine.style('left',        specPct + '%');
+  specLine.style('top',         LINE_START + 'px');
+  specLine.style('height',      (SPEC_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  specLine.style('width',       '0');
+  specLine.style('border-left', '2px dotted ' + bombColor);
+  specLine.style('transform',   'translateX(-50%)');
+  specLine.style('pointer-events', 'none');
+  specLine.parent(container);
+
+  // "What sources are authoritative?" line
+  let authLine = createDiv('');
+  authLine.style('position',    'absolute');
+  authLine.style('left',        authPct + '%');
+  authLine.style('top',         LINE_START + 'px');
+  authLine.style('height',      (BOMB_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  authLine.style('width',       '0');
+  authLine.style('border-left', '2px dotted ' + bombColor);
+  authLine.style('transform',   'translateX(-50%)');
+  authLine.style('pointer-events', 'none');
+  authLine.parent(container);
+
+  // "Did they catch him? (no)" line
+  let catchLine = createDiv('');
+  catchLine.style('position',    'absolute');
+  catchLine.style('left',        catchPct + '%');
+  catchLine.style('top',         LINE_START + 'px');
+  catchLine.style('height',      (WH_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  catchLine.style('width',       '0');
+  catchLine.style('border-left', '2px dotted ' + bombColor);
+  catchLine.style('transform',   'translateX(-50%)');
+  catchLine.style('pointer-events', 'none');
+  catchLine.parent(container);
+
+  // "Suspect images" line
+  let imageLine = createDiv('');
+  imageLine.style('position',    'absolute');
+  imageLine.style('left',        imagePct + '%');
+  imageLine.style('top',         LINE_START + 'px');
+  imageLine.style('height',      (BOMB_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  imageLine.style('width',       '0');
+  imageLine.style('border-left', '2px dotted ' + bombColor);
+  imageLine.style('transform',   'translateX(-50%)');
+  imageLine.style('pointer-events', 'none');
+  imageLine.parent(container);
+
+  // "Suspects named" line
+  let detailsLine = createDiv('');
+  detailsLine.style('position',    'absolute');
+  detailsLine.style('left',        detailsPct + '%');
+  detailsLine.style('top',         LINE_START + 'px');
+  detailsLine.style('height',      (BOMB_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  detailsLine.style('width',       '0');
+  detailsLine.style('border-left', '2px dotted ' + bombColor);
+  detailsLine.style('transform',   'translateX(-50%)');
+  detailsLine.style('pointer-events', 'none');
+  detailsLine.parent(container);
+
+  // "What details about them are relevant?" — three lines, one per revision
+  for (let pct of [rel1Pct, rel2Pct, rel3Pct]) {
+    let rl = createDiv('');
+    rl.style('position',    'absolute');
+    rl.style('left',        pct + '%');
+    rl.style('top',         LINE_START + 'px');
+    rl.style('height',      (WH_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+    rl.style('width',       '0');
+    rl.style('border-left', '2px dotted ' + bombColor);
+    rl.style('transform',   'translateX(-50%)');
+    rl.style('pointer-events', 'none');
+    rl.parent(container);
   }
 
-  addMarker(bombTime,                        'bomb detonates');
-  addMarker(new Date('2013-04-20T00:42:00Z'), 'Tsarnaev arrested');
+  // ── 6-hour sub-ticks + labels ──────────────────────────
+  const hourLabels = { 6: '6am', 12: '12pm', 18: '6pm' };
+  let hd = edtDayStart(start);
+  if (hd.getTime() < start.getTime()) hd = new Date(hd.getTime() + 86400000);
+  while (hd < end) {
+    for (let offset of [6, 12, 18]) {
+      let t = new Date(hd.getTime() + offset * 3600 * 1000);
+      if (t >= end) continue;
+      let pct = toPct(t);
 
-  // ── Below-track green labels (with vertical stacking for overlaps) ────
-  const PX_PER_CHAR = 5.5;  // rough char width at 10px font
-  const LABEL_H     = 13;   // label row height (text + gap)
-  let belowSlots = [];       // { xPx, rightPx, bottomY } for placed labels
+      let htick = createDiv('');
+      htick.class('timeline-hour-tick');
+      htick.style('left', pct + '%');
+      htick.style('top',  (trackY - 2) + 'px');
+      htick.parent(container);
 
-  function addLabelBelow(revid, text) {
-    let r = data.revisions.find(r => r.revid === revid);
-    if (!r) return;
-    let pct     = Math.max(0, Math.min(100, toPct(new Date(r.timestamp))));
-    let xPx     = pct / 100 * cw;
-    let rightPx = xPx + text.length * PX_PER_CHAR + 8;
-
-    // Find lowest non-overlapping vertical slot
-    let labelY = trackY + 22;
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (let s of belowSlots) {
-        if (xPx < s.rightPx && rightPx > s.xPx && labelY < s.bottomY) {
-          labelY = s.bottomY;
-          changed = true;
-        }
-      }
+      let hlabel = createDiv(hourLabels[offset]);
+      hlabel.class('timeline-hour-label');
+      hlabel.style('left', pct + '%');
+      hlabel.style('top',  (trackY + 7) + 'px');
+      hlabel.parent(container);
     }
-    belowSlots.push({ xPx, rightPx, bottomY: labelY + LABEL_H });
-
-    // Short tick at track — never extends into label territory
-    let tick = createDiv('');
-    tick.class('timeline-event');
-    tick.style('left',       pct + '%');
-    tick.style('top',        (trackY + 2) + 'px');
-    tick.style('height',     '8px');
-    tick.style('background', '#3c763d');
-    tick.parent(container);
-
-    // Label floats at its stacked y, independent of tick height
-    let lbl = createDiv(text);
-    lbl.style('position',    'absolute');
-    lbl.style('left',        `calc(${pct}% + 4px)`);
-    lbl.style('top',         labelY + 'px');
-    lbl.style('font-size',   '10px');
-    lbl.style('color',       '#3c763d');
-    lbl.style('white-space', 'nowrap');
-    lbl.style('line-height', '1');
-    lbl.parent(container);
-
-    // Grow container if stacked labels exceed current height
-    let needed = labelY + LABEL_H + 4;
-    if (needed > totalH) {
-      totalH = needed;
-      container.style('height', totalH + 'px');
-    }
+    hd = new Date(hd.getTime() + 86400000);
   }
-
-  addLabelBelow(550550335, 'is there a suspect?');
-  addLabelBelow(550839346, 'suspect in custody -- incorrect');
-  addLabelBelow(550854877, 'FBI clarifies no arrest has been made');
-  addLabelBelow(551143482, 'Tsarnaev first mentioned');
 
   // ── Dots ───────────────────────────────────────────────
   for (let d of dotData) {
@@ -593,8 +671,184 @@ function renderTimeline() {
     dot.style('top',    (trackY + d.y - size / 2) + 'px');
     dot.style('width',  size + 'px');
     dot.style('height', size + 'px');
+    if (data.revisions[d.i].revid === 550562971 || data.revisions[d.i].revid === 550591039 || data.revisions[d.i].revid === 550735317 || data.revisions[d.i].revid === 550839346 || data.revisions[d.i].revid === 551040062 || data.revisions[d.i].revid === 551143482 || data.revisions[d.i].revid === 551175490 || data.revisions[d.i].revid === 551216794 || data.revisions[d.i].revid === 551233207) {
+      dot.style('background', isCurrent ? '#2e6b52' : bombColor);
+    }
     dot.parent(container);
     let idx = d.i;
     dot.mousePressed(() => { edit = idx; showEdit(); });
   }
+
+  // ── Bombing marker ─────────────────────────────────────
+  const bombTime = new Date('2013-04-15T18:49:00Z');
+  const bombPct  = toPct(bombTime);
+
+  // Line from track alongside bombing label
+  let bombLine = createDiv('');
+  bombLine.style('position',    'absolute');
+  bombLine.style('left',        bombPct + '%');
+  bombLine.style('top',         LINE_START + 'px');
+  bombLine.style('height',      (BOMB_LABEL_Y + BUBBLE_H - LINE_START) + 'px');
+  bombLine.style('width',       '0');
+  bombLine.style('border-left', '2px dotted ' + bombColor);
+  bombLine.style('transform',   'translateX(-50%)');
+  bombLine.style('pointer-events', 'none');
+  bombLine.parent(container);
+
+  // Bombing label — renders on top of wh line, covering it
+  let bombLabel = createDiv('Bombing, 2:49 PM');
+  bombLabel.style('position',      'absolute');
+  bombLabel.style('left',          bombPct + '%');
+  bombLabel.style('top',           BOMB_LABEL_Y + 'px');
+  bombLabel.style('transform',     'translateX(-14px)');
+  bombLabel.style('font-size',     '11px');
+  bombLabel.style('font-weight',   '600');
+  bombLabel.style('color',         bombColor);
+  bombLabel.style('white-space',   'nowrap');
+  bombLabel.style('line-height',   '1');
+  bombLabel.style('background',    '#edf6f2');
+  bombLabel.style('border',        '1px solid ' + bombColor);
+  bombLabel.style('border-radius', '10px');
+  bombLabel.style('padding',       '3px 7px');
+  bombLabel.style('pointer-events','none');
+  bombLabel.parent(container);
+
+
+
+  // "Is there a suspect?" label — renders last, on top
+  let suspectLabel = createDiv('Is there a suspect?');
+  suspectLabel.style('position',      'absolute');
+  suspectLabel.style('left',          suspectPct + '%');
+  suspectLabel.style('top',           WH_LABEL_Y + 'px');
+  suspectLabel.style('transform',     'translateX(-14px)');
+  suspectLabel.style('font-size',     '11px');
+  suspectLabel.style('font-weight',   '600');
+  suspectLabel.style('color',         bombColor);
+  suspectLabel.style('white-space',   'nowrap');
+  suspectLabel.style('line-height',   '1');
+  suspectLabel.style('background',    '#edf6f2');
+  suspectLabel.style('border',        '1px solid ' + bombColor);
+  suspectLabel.style('border-radius', '10px');
+  suspectLabel.style('padding',       '3px 7px');
+  suspectLabel.style('pointer-events','none');
+  suspectLabel.parent(container);
+
+  // "What counts as speculation?" label
+  let specLabel = createDiv('What counts as speculation?');
+  specLabel.style('position',      'absolute');
+  specLabel.style('left',          specPct + '%');
+  specLabel.style('top',           SPEC_LABEL_Y + 'px');
+  specLabel.style('transform',     'translateX(-14px)');
+  specLabel.style('font-size',     '11px');
+  specLabel.style('font-weight',   '600');
+  specLabel.style('color',         bombColor);
+  specLabel.style('white-space',   'nowrap');
+  specLabel.style('line-height',   '1');
+  specLabel.style('background',    '#edf6f2');
+  specLabel.style('border',        '1px solid ' + bombColor);
+  specLabel.style('border-radius', '10px');
+  specLabel.style('padding',       '3px 7px');
+  specLabel.style('pointer-events','none');
+  specLabel.parent(container);
+
+  // "What sources are authoritative?" label
+  let authLabel = createDiv('What sources are authoritative?');
+  authLabel.style('position',      'absolute');
+  authLabel.style('left',          authPct + '%');
+  authLabel.style('top',           BOMB_LABEL_Y + 'px');
+  authLabel.style('transform',     'translateX(-14px)');
+  authLabel.style('font-size',     '11px');
+  authLabel.style('font-weight',   '600');
+  authLabel.style('color',         bombColor);
+  authLabel.style('white-space',   'nowrap');
+  authLabel.style('line-height',   '1');
+  authLabel.style('background',    '#edf6f2');
+  authLabel.style('border',        '1px solid ' + bombColor);
+  authLabel.style('border-radius', '10px');
+  authLabel.style('padding',       '3px 7px');
+  authLabel.style('pointer-events','none');
+  authLabel.parent(container);
+
+  // "Did they catch him? (no)" label
+  let catchLabel = createDiv('Did they catch him? (no)');
+  catchLabel.style('position',      'absolute');
+  catchLabel.style('left',          catchPct + '%');
+  catchLabel.style('top',           WH_LABEL_Y + 'px');
+  catchLabel.style('transform',     'translateX(-14px)');
+  catchLabel.style('font-size',     '11px');
+  catchLabel.style('font-weight',   '600');
+  catchLabel.style('color',         bombColor);
+  catchLabel.style('white-space',   'nowrap');
+  catchLabel.style('line-height',   '1');
+  catchLabel.style('background',    '#edf6f2');
+  catchLabel.style('border',        '1px solid ' + bombColor);
+  catchLabel.style('border-radius', '10px');
+  catchLabel.style('padding',       '3px 7px');
+  catchLabel.style('pointer-events','none');
+  catchLabel.parent(container);
+
+  // "Suspect images" label
+  let imageLabel = createDiv('Suspect images');
+  imageLabel.style('position',      'absolute');
+  imageLabel.style('left',          imagePct + '%');
+  imageLabel.style('top',           BOMB_LABEL_Y + 'px');
+  imageLabel.style('transform',     'translateX(-14px)');
+  imageLabel.style('font-size',     '11px');
+  imageLabel.style('font-weight',   '600');
+  imageLabel.style('color',         bombColor);
+  imageLabel.style('white-space',   'nowrap');
+  imageLabel.style('line-height',   '1');
+  imageLabel.style('background',    '#edf6f2');
+  imageLabel.style('border',        '1px solid ' + bombColor);
+  imageLabel.style('border-radius', '10px');
+  imageLabel.style('padding',       '3px 7px');
+  imageLabel.style('pointer-events','none');
+  imageLabel.parent(container);
+
+  // "Suspect details" label
+  let detailsLabel = createDiv('Suspects named');
+  detailsLabel.style('position',      'absolute');
+  detailsLabel.style('left',          detailsPct + '%');
+  detailsLabel.style('top',           BOMB_LABEL_Y + 'px');
+  detailsLabel.style('transform',     'translateX(-14px)');
+  detailsLabel.style('font-size',     '11px');
+  detailsLabel.style('font-weight',   '600');
+  detailsLabel.style('color',         bombColor);
+  detailsLabel.style('white-space',   'nowrap');
+  detailsLabel.style('line-height',   '1');
+  detailsLabel.style('background',    '#edf6f2');
+  detailsLabel.style('border',        '1px solid ' + bombColor);
+  detailsLabel.style('border-radius', '10px');
+  detailsLabel.style('padding',       '3px 7px');
+  detailsLabel.style('pointer-events','none');
+  detailsLabel.parent(container);
+
+  // "What details about them are relevant?" label — centered across all three revisions
+  let relevantLabel = createDiv('What details about them are relevant?');
+  relevantLabel.style('position',      'absolute');
+  relevantLabel.style('left',          rel1Pct + '%');
+  relevantLabel.style('top',           WH_LABEL_Y + 'px');
+  relevantLabel.style('transform',     'translateX(-14px)');
+  relevantLabel.style('font-size',     '11px');
+  relevantLabel.style('font-weight',   '600');
+  relevantLabel.style('color',         bombColor);
+  relevantLabel.style('white-space',   'nowrap');
+  relevantLabel.style('line-height',   '1');
+  relevantLabel.style('background',    '#edf6f2');
+  relevantLabel.style('border',        '1px solid ' + bombColor);
+  relevantLabel.style('border-radius', '10px');
+  relevantLabel.style('padding',       '3px 7px');
+  relevantLabel.style('pointer-events','none');
+  relevantLabel.parent(container);
+
+  // Clamp relevantLabel so it doesn't extend past the right edge of the timeline
+  setTimeout(() => {
+    const containerW = container.elt.offsetWidth;
+    const labelW     = relevantLabel.elt.offsetWidth;
+    const leftPx    = rel1Pct / 100 * containerW;
+    const rightEdge = leftPx - 14 + labelW;
+    if (rightEdge > containerW) {
+      relevantLabel.style('transform', 'translateX(' + Math.floor(containerW - leftPx - labelW) + 'px)');
+    }
+  }, 0);
 }
