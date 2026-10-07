@@ -170,8 +170,15 @@ p{
   color: #555;
 }
 
+#timeline-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 #timeline {
   position: relative;
+  min-width: 900px;
   margin: 8px 5px 8px 0;
 }
 
@@ -367,4 +374,128 @@ p{
 
 .cite-ref a:hover {
   text-decoration: underline;
+}
+
+#mobile-note {
+  display: none;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+  margin: 8px 0 0;
+}
+
+#edit-scrubber {
+  display: none;
+  align-items: center;
+  gap: 0.75em;
+  margin: 4px 0 8px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #555;
+}
+
+#edit-slider {
+  --fill: 0%;
+  --track-filled: #d9cdef;
+  --track-empty: #d6e3f2;
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+#edit-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right,
+    var(--track-filled) var(--fill),
+    var(--track-empty) var(--fill));
+}
+
+#edit-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track-empty);
+}
+
+#edit-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track-filled);
+}
+
+#edit-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #b39ddb;
+  border: none;
+}
+
+#edit-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #b39ddb;
+  border: none;
+}
+
+/* ── Mobile ─────────────────────────────────────────── */
+@media (max-width: 700px) {
+  #edit-scrubber {
+    display: flex;
+  }
+
+  #mobile-note {
+    display: block;
+  }
+
+  #page-title {
+    font-size: 1.6em;
+  }
+
+  /* Editor fields sit beside the date/time while they fit, then wrap below */
+  #label {
+    flex-wrap: wrap;
+    margin-right: 0;
+  }
+
+  #date-time {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  #editor-block {
+    width: auto;
+    flex: 1 1 260px;
+  }
+
+  #nav-arrows {
+    display: none;
+  }
+
+  #editor,
+  #comment {
+    overflow-wrap: anywhere;
+  }
+
+  #jump-block {
+    display: none;
+  }
+
+  .section-heading {
+    font-size: 1.3em;
+  }
+
+  .references-list {
+    column-count: 1;
+    padding-left: 2em;
+  }
 }

@@ -16,7 +16,7 @@ const SECTION_ORDER = [
 ];
 
 function preload() {
-  data = loadJSON('edits_with_citations.json');
+  data = loadJSON('edits_slim.json');
   citationsRaw = loadJSON('citations.json');
 }
 
@@ -52,6 +52,20 @@ function setup() {
     return true;
   });
 
+  let slider = select('#edit-slider').elt;
+  slider.max = data.revisions.length - 1;
+  // Re-render at most once per frame while dragging — the timeline rebuild is heavy
+  let sliderPending = false;
+  slider.addEventListener('input', () => {
+    if (sliderPending) return;
+    sliderPending = true;
+    requestAnimationFrame(() => {
+      sliderPending = false;
+      edit = parseInt(slider.value);
+      showEdit();
+    });
+  });
+
   showEdit();
 
   select('#prev-btn').elt.addEventListener('click', () => { if (edit > 0) prev(); });
@@ -81,6 +95,10 @@ function keyPressed() {
 function showEdit() {
   let e = data.revisions[edit];
   console.log(e.revid);
+
+  let slider = select('#edit-slider').elt;
+  slider.value = edit;
+  slider.style.setProperty('--fill', (edit / Math.max(1, data.revisions.length - 1) * 100) + '%');
 
   select('#wiki-link').attribute('href', `https://en.wikipedia.org/w/index.php?diff=${e.revid}`);
   select('#editor').html(e.user);
@@ -849,6 +867,17 @@ function renderTimeline() {
     const rightEdge = leftPx - 14 + labelW;
     if (rightEdge > containerW) {
       relevantLabel.style('transform', 'translateX(' + Math.floor(containerW - leftPx - labelW) + 'px)');
+    }
+
+    // On narrow screens the timeline scrolls sideways — keep the current dot in view
+    const scroller = select('#timeline-scroll').elt;
+    const cur      = dotData.find(d => d.i === edit);
+    if (cur && scroller.scrollWidth > scroller.clientWidth) {
+      const x      = cur.pct / 100 * containerW;
+      const margin = 40;
+      if (x < scroller.scrollLeft + margin || x > scroller.scrollLeft + scroller.clientWidth - margin) {
+        scroller.scrollLeft = x - scroller.clientWidth / 2;
+      }
     }
   }, 0);
 }
